@@ -26,7 +26,7 @@ Some relevant papers for your reference:
 3. [Amazon Search speeds up training by 7.3x on SageMaker.](https://aws.amazon.com/blogs/machine-learning/run-pytorch-lightning-and-native-pytorch-ddp-on-amazon-sagemaker-training-featuring-amazon-search/) In this blog post we introduce two new features on Amazon SageMaker: support for native PyTorch DDP and PyTorch Lightning integration with SM DDP. We also discuss how Amazon Search sped up their overall training time by 7.3x by moving to distributed training.
 
 ## WACV Research Workshop 2023 in Hawaii - Pretrain Large Vision and Multimodal Models
-If you'd like to attend our workshop in Hawaii, January 2023, [see the details here!](https://sites.google.com/view/wacv2023-workshop/home?authuser=0) Paper submissions will be due mid-October. We are inviting extending papers proposing novel concepts in the space of foundation models, in addition to an industry poster track.
+If you'd like to attend our workshop in Hawaii, January 2023, [see the details here!](https://sites.google.com/view/wacv2023-workshop/home?authuser=0) Paper submissions will be due mid-October. We are inviting extended papers proposing novel concepts in the space of foundation models, in addition to a more application-focused industry poster track.
 
 
 ```python
