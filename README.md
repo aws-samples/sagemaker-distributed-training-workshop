@@ -6,7 +6,7 @@ Today you'll walk through two hands-on labs. The first one focuses on [***data p
 
 
 ## Prerequisites
-This lab is self-contained. All of the content you need is produced by the notebooks themselves. However, if you are in an AWS-led workshop you will most likely use the Event Engine to manage your AWS account. 
+This lab is self-contained. All of the content you need is produced by the notebooks themselves or included in the directory. However, if you are in an AWS-led workshop you will most likely use the Event Engine to manage your AWS account. 
 
 If not, please make sure you have an AWS account with a SageMaker Studio domain created. In this account please request a service limit increase for the `ml.g4dn.12xlarge` instance type within SageMaker training. 
 
