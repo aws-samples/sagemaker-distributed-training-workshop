@@ -1,0 +1,7 @@
+FROM 763104351884.dkr.ecr.us-east-1.amazonaws.com/huggingface-pytorch-inference:1.10.2-transformers4.17.0-gpu-py38-cu113-ubuntu20.04 as gpu_base-inf
+
+RUN pip install ftfy spacy && pip install --upgrade transformers==4.21.0
+RUN pip install diffusers
+
+ADD mod_handler_service.py /opt/conda/lib/python3.8/site-packages/sagemaker_huggingface_inference_toolkit/handler_service.py
+CMD ["serve"]
