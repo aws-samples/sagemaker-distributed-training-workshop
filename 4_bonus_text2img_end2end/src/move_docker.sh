@@ -23,7 +23,6 @@ then
     sudo echo ", \"data-root\": \"/home/ec2-user/SageMaker/.docker\" ,\"default-shm-size\": \"40G\",\"storage-driver\":\"overlay2\"}" >> $file;
 fi
 sudo cp $file "/etc/docker/";
-
 sudo systemctl daemon-reload;
 sudo systemctl start docker;
 

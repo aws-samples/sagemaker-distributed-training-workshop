@@ -1,0 +1,5 @@
+*.ipynb_checkpoint*
+
+*conceptual_captions*
+*model*
+*sd-base-model*
