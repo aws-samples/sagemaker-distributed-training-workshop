@@ -24,7 +24,7 @@ docker login -u AWS -p $(aws ecr get-login-password --region $REGION) $ACCTNUM.d
 docker login -u AWS -p $(aws ecr get-login-password --region $REGION) $LOCALACCTID.dkr.ecr.$REGION.amazonaws.com;
 
 echo $(pwd);
-DOCKER_BUILDKIT=1 docker build $(pwd)/src/ -f $(pwd)/src/Dockerfile-Inf -t local:latest -q &
+DOCKER_BUILDKIT=1 docker build $(pwd)/src/ -f $(pwd)/src/Dockerfile-Inf -t local:latest 
 
 
 
