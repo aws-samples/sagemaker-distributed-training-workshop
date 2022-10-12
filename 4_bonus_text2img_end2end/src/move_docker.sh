@@ -23,8 +23,15 @@ then
     sudo echo ", \"data-root\": \"/home/ec2-user/SageMaker/.docker\" ,\"default-shm-size\": \"40G\",\"storage-driver\":\"overlay2\"}" >> $file;
 fi
 sudo cp $file "/etc/docker/";
+
+#distribution=$(. /etc/os-release;echo $ID$VERSION_ID) \
+#   && curl -s -L https://nvidia.github.io/libnvidia-container/$distribution/libnvidia-container.repo | sudo tee /etc/yum.repos.d/nvidia-container-toolkit.repo;
+
+#sudo yum clean expire-cache;
+
 sudo systemctl daemon-reload;
 sudo systemctl start docker;
+sudo service docker restart;
 
 sudo chown "ec2-user":"ec2-user" $DOCKER_D;
 for d in buildkit containers daemon.json image network overlay2 plugins runtimes swarm tmp trust volumes
@@ -39,7 +46,6 @@ then
 fi
 
 # This is common for both GPU and CPU instances
-
 # check if we have docker-compose
 docker-compose version >/dev/null 2>&1
 if [ $? -ne 0 ]; then
@@ -80,7 +86,6 @@ if [ $IPTABLES_PATCHED -eq 0 ]; then
 else
     echo "SageMaker instance routing for Docker is ok. We are good to go!"
 fi
-
 if [ ! -f "/home/ec2-user/.sagemaker/config.yaml" ]
 then
     mkdir -p /home/ec2-user/.sagemaker;

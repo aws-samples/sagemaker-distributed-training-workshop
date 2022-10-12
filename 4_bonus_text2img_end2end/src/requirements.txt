@@ -6,5 +6,5 @@ spacy
 
 transformers==4.21.0 
 accelerate 
-diffusers
+diffusers==0.4.1
 datasets
