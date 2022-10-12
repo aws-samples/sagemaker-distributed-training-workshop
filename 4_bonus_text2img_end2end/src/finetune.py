@@ -538,7 +538,7 @@ def main():
                 # Predict the noise residual and compute loss
                 noise_pred = unet(noisy_latents, timesteps, encoder_hidden_states)["sample"]
                 
-                loss = F.mse_loss(noise_pred['sample'], noise, reduction="none")
+                loss = F.mse_loss(noise_pred, noise, reduction="none")
                 loss = loss.mean([1, 2, 3]).mean()
                 accelerator.backward(loss)
                 optimizer.step()
