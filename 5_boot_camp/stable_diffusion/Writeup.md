@@ -6,7 +6,7 @@ You’ve just joined a media and entertainment startup - Octank Digital Media. T
 
 ### The dataset
 
-You’ll start with a 100GB sample of theLaion-5B dataset (https://laion.ai/blog/laion-5b/). This will get you a few million image/text pairs, each downloaded from the internet. 
+You’ll start with a 100GB sample of the [Laion-5B dataset](https://laion.ai/blog/laion-5b/). This will get you a few million image/text pairs, each downloaded from the internet. 
 
 ### The starter code
 
@@ -22,7 +22,7 @@ Day 1. Data - Download the data, create an FSx for Lustre volume, and test your 
 
 Day 2. Training - Run on as many GPUs as you can, using data parallel within SageMaker training. Report your best iterations per second per batch size. Ideally run a test with hyperparameter tuning at a small scale to empirically balance cost with accuracy. We do not expect you to train the model to convergence. Your learning objective for the day is to get experience training on multiple GPUs and instances at scale with SageMaker.
 
-Day 3. Hosting - Deploy the model onto a SageMaker Real-time endpoint. Learn about best practices for prompt engineering, such as with this OpenAI resource (https://cdn.openart.ai/assets/Stable%20Diffusion%20Prompt%20Book%20From%20OpenArt%2010-28.pdf). Spend time learning about what types of prompts work best, and generate the best images you can. Note, you’ll have the option to deploy both the generic pretrained model and the one you’ve just worked with. Your learning objective for the day is to 
+Day 3. Hosting - Deploy the model onto a SageMaker Real-time endpoint. Learn about best practices for prompt engineering, such as with [this OpenAI resource](https://cdn.openart.ai/assets/Stable%20Diffusion%20Prompt%20Book%20From%20OpenArt%2010-28.pdf). Spend time learning about what types of prompts work best, and generate the best images you can. Note, you’ll have the option to deploy both the generic pretrained model and the one you’ve just worked with. Your learning objective for the day is to 
 
 ### Business pitch and total project cost estimation
 
