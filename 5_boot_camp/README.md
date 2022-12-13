@@ -2,7 +2,7 @@
 In this 3-day boot camp, your business and technical teams will collaborate to gain hands-on experience with various aspects of the entire AI/ML lifecycle. 
 
 ### Scope
-While starter code will be provided, **you will need to develop the solutions yourself.** Said another way, we'll provide the mentorship and time, you provide the muscle to bring it to life.
+While starter code will be provided, **you will need to develop the solutions yourself.** Said another way, we'll provide the mentorship and expertise, you provide the muscle to bring it to life.
 
 ### Projects
 You'll break into teams and focus on one of 3 projects: text/image with Stable Diffuion, text-only with GPT, and 3D vision with autonomous vehicles.
