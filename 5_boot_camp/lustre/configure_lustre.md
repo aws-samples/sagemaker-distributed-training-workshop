@@ -28,4 +28,4 @@ Once Lustre is created, we need to ensure that it can connect to you SageMaker t
 Next, we need to ensure that S3 can receive output files from your VPC. Let's do that now. In the AWS VPC page, select "Endpoints." Click on "create an endpoint." Select "AWS services," then use the search bar to filter down and select 'com.amazonaws.region-s3.' Mine is 'com.amazonaws.us-east-1.s3.' Then select your VPC, along with your route table. I set the policy to "Full access." Click "create," and you should be ready!
     
 ### Step 5. Test your connection to Lustre from SageMaker training
-Finally, we need to make sure that SageMaker training can successfully point to your Lustre volume. To do that, use **this notebook.**
+Finally, we need to make sure that SageMaker training can successfully point to your Lustre volume. To do that, use **[this notebook.](https://github.com/aws-samples/sagemaker-distributed-training-workshop/blob/main/5_boot_camp/lustre/test_lustre.ipynb)**
