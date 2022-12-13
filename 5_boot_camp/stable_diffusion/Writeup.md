@@ -10,7 +10,7 @@ You’ll start with a 100GB sample of the [Laion-5B dataset](https://laion.ai/bl
 
 ### The starter code
 
-1/ First, use *this code to download the dataset*. Make sure you point the download script directly to S3, bypassing local disk. 
+1/ First, use *[this notebook to download the dataset](https://github.com/aws-samples/sagemaker-distributed-training-workshop/blob/main/5_boot_camp/stable_diffusion/Stable_Diffusion_Data_Download.ipynb)*. Make sure you point the download script directly to S3, bypassing local disk. 
 
 2/ Second, use *this code to train the model on SageMaker.*
 
