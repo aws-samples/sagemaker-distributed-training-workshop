@@ -14,7 +14,7 @@ You’ll start with a 100GB sample of the [Laion-5B dataset](https://laion.ai/bl
 
 2/ Second, follow *[these steps](https://github.com/aws-samples/sagemaker-distributed-training-workshop/blob/main/5_boot_camp/lustre/configure_lustre.md)* to create an FSx for Lustre volume from this dataset.
 
-3/ Third, use *this code to train the model on SageMaker.*
+3/ Third, use *[this code](https://github.com/aws-samples/sagemaker-distributed-training-workshop/blob/main/5_boot_camp/stable_diffusion/Train_Stable_Diffusion.ipynb) to train the model on SageMaker.*
 
 4/ Finally, use *this code to host the model on SageMaker.*
 
