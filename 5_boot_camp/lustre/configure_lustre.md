@@ -14,7 +14,7 @@ Click on Data Repositry, and select the import from and export to S3. Define the
 Create! Lustre should be online in a few minutes.
 
 ### Step 3. Configure your VPC to work nicely with SageMaker distributed training
-Once Lustre is created, we need to ensure that it can connect to you SageMaker training jobs. You can read more about this in [our docs here](https://docs.aws.amazon.com/sagemaker/latest/dg/train-vpc.html#train-vpc-groups). It needs a few things:
+Once Lustre is created, we need to ensure that it can connect to you SageMaker training jobs. You can read more about this in [our docs here](https://docs.aws.amazon.com/sagemaker/latest/dg/train-vpc.html). It needs a few things:
 
 1. Ensure your selected VPC has an internet gateway (IG) attached. If you used the default VPC, then it already has an IG attached. Personally I like to keep a small text file open on my computer where I copy/paste all of my VPC details. 
 
