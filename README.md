@@ -26,9 +26,8 @@ Some relevant papers for your reference:
 2. [SageMaker Model Parallel.](https://arxiv.org/abs/2111.05972) In this paper we propose a model parallelism framework available within Amazon SageMaker Training to reduce memory errors and enable training GPT-3 sized models and more! [See our case study achieving 32 samples / second with 175B parameters on SageMaker over 140 p4d nodes.](https://aws.amazon.com/blogs/machine-learning/train-175-billion-parameter-nlp-models-with-model-parallel-additions-and-hugging-face-on-amazon-sagemaker/)
 3. [Amazon Search speeds up training by 7.3x on SageMaker.](https://aws.amazon.com/blogs/machine-learning/run-pytorch-lightning-and-native-pytorch-ddp-on-amazon-sagemaker-training-featuring-amazon-search/) In this blog post we introduce two new features on Amazon SageMaker: support for native PyTorch DDP and PyTorch Lightning integration with SM DDP. We also discuss how Amazon Search sped up their overall training time by 7.3x by moving to distributed training.
 
-## WACV Research Workshop 2023 in Hawaii - Pretrain Large Vision and Multimodal Models
-If you'd like to attend our workshop in Hawaii, January 2023, [see the details here!](https://sites.google.com/view/wacv2023-workshop/home?authuser=0) Paper submissions will be due mid-October. We are inviting extended papers proposing novel concepts in the space of foundation models, in addition to a more application-focused industry poster track.
-
+## Upcoming book
+If you'd like to read my upcoming book on the topic, check it out [on Amazon here!](https://bit.ly/dist-train-book). It's coming out April 2023.
 
 ```python
 
