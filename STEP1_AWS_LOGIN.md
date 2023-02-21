@@ -2,16 +2,13 @@
 
 ## Set up AWS Accounts
 
-1 If you are running the workshop **on your own** and you don’t already have an AWS account with Administrator access, please create one now by clicking here (https://aws.amazon.com/getting-started/). 
-
-2 If you are running the workshop **at an AWS Event or with AWS teams**, Login to AWS Workshop Portal by clicking the button or browsing to https://dashboard.eventengine.run/
+Login to AWS Workshop Portal by clicking the link https://bit.ly/aws-access
 
 The following screen shows up.
 
 <center><img src="img/event_engine_login_screen.png" width="80%"/> </center> <br/><br/>
 
-3 Enter the provided hash (will be provided in the chat by the event administrator) in the text box. The button on the bottom right corner activates to Accept Terms & Login. Click on that button to continue the next screen below.
-
+3 Click on Accept Terms & Login button to continue the next screen below.
 
 <center><img src="img/one_time_password.png" width="80%"/> </center><br/><br/>
 
