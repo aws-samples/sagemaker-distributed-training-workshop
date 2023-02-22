@@ -10,6 +10,8 @@ This workshop is organized in a number of sequential steps. Steps 1 through 3 ar
 
 ## 2. Setup Amazon SageMaker ([STEP2_SAGEMAKER_LOGIN.md](https://github.com/aws-samples/sagemaker-distributed-training-workshop/blob/main/STEP2_SAGEMAKER_LOGIN.md#login-to-amazon-sagemaker-studio))
 
+Git url "https://github.com/aws-samples/sagemaker-distributed-training-workshop.git" to clone the repository for labs
+
 ## 3 Run the use case examples 
 Once you have logged in to Studio, run the following labs:<br>
 Lab1: https://github.com/aws-samples/sagemaker-distributed-training-workshop/tree/main/1_data_parallel/Lab1_stable_diffusion<br>
