@@ -241,6 +241,33 @@ class Agent(nn.Module):
 ## Util Functions  ## 
 #####################
 
+def whiten(x):
+    var, mean = torch.var_mean(x)
+    return (x - mean) * torch.rsqrt(var + 1e-8)
+
+
+def gae(
+    values,
+    rewards,
+):
+    advantages = torch.zeros_like(rewards, device=rewards.device)
+    last_advantage = 0
+    last_value = 0
+    
+    with torch.no_grad():
+        for t in reversed(range(rewards.shape[1])):
+            delta = rewards[:, t] + config.method.gamma * last_value - values[:, t]
+            last_advantage = delta + config.method.gamma * config.method.lam * last_advantage
+            advantages[:, t] = last_advantage
+            last_value = values[:, t]
+
+        returns = advantages + values
+    
+    if config.method.use_whitening:
+        advantages = whiten(advantages)
+    
+    return advantages, returns
+
 def generate(model, tokenizer, input_ids, attention_mask=None, **kwargs):
     
     generate_kwargs = dict(
@@ -287,6 +314,80 @@ def get_positive_score(scores):
 def reward_fn(samples: List[str]) -> List[float]:
     sentiments = list(map(get_positive_score, sentiment_fn(samples)))
     return sentiments
+
+def ppo_loss(
+    logprobs,     
+    values,       
+    old_logprobs, 
+    old_values,   
+    advantages,   
+    returns,      
+    mask,         
+):
+
+    values_clipped = torch.clamp(
+        values,
+        old_values - config.method.cliprange_value,
+        old_values + config.method.cliprange_value,
+    )
+    
+    n = mask.sum()
+    
+    vf_loss1 = (values - returns) ** 2
+    vf_loss2 = (values_clipped - returns) ** 2
+    vf_loss = 0.5 * torch.sum(torch.max(vf_loss1, vf_loss2) * mask) / n
+
+    log_ratio = (logprobs - old_logprobs) * mask
+    ratio = torch.exp(log_ratio)
+    pg_loss1 = -advantages * ratio
+    pg_loss2 = -advantages * torch.clamp(ratio, 1.0 - config.method.cliprange, 1.0 + config.method.cliprange)
+    pg_loss = torch.sum(torch.max(pg_loss1, pg_loss2) * mask) / n
+    pg_clipfrac = torch.sum((pg_loss2 > pg_loss1).float() * mask) / n
+
+    loss = pg_loss + config.method.vf_coef * vf_loss
+    
+    return loss
+
+def loss_fn(batch):
+    model_device = next(model.parameters()).device
+    query_tensors = batch.query_tensors.to(model_device)
+    response_tensors = batch.response_tensors.to(model_device)
+    old_logprobs = batch.logprobs.to(model_device)
+    old_values = batch.values.to(model_device)
+    old_rewards = batch.rewards.to(model_device)
+    
+    response_length = old_rewards.shape[1]
+
+    advantages, returns = gae(old_values, old_rewards)
+
+    tokens, attention_mask, position_ids = get_model_inputs(query_tensors, response_tensors, tokenizer.pad_token_id)
+
+    logits, values_pred = model(tokens,
+                                attention_mask=attention_mask,
+                                position_ids=position_ids)
+    values_pred = values_pred[:, :-1]
+    logprobs = logprobs_from_logits(logits[:, :-1, :], tokens[:, 1:])
+    attention_mask = attention_mask[:, :-1]
+
+    start = query_tensors.shape[1] - 1
+    end = start + response_length
+    logprobs, values_pred, mask = (
+        logprobs[:, start:end],
+        values_pred[:, start:end],
+        attention_mask[:, start:end],
+    )
+
+    loss = ppo_loss(
+        logprobs=logprobs,
+        values=values_pred,
+        old_logprobs=old_logprobs,
+        old_values=old_values,
+        advantages=advantages,
+        returns=returns,
+        mask=mask,
+    )
+
+    return loss, old_rewards[:,-1].mean().item()
 
 ############################
 ## Model and Data Configs ## 
