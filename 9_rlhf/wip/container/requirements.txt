@@ -1,8 +1,0 @@
-tqdm
-omegaconf
-dataclasses
-torchtyping
-datasets
-transformers
-torch
-xformers
