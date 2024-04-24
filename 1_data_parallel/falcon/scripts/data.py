@@ -61,7 +61,20 @@ def parse_args():
     return args
 
 
-def download_data(split_range, data_dir, parallel_proc):
+
+def create_batch(start_of_split, end_of_split, token, split_name):
+    worker_split_batch=[]
+    
+    for split_number in range(int(start_of_split), int(end_of_split)):    
+        file_name = split_name.replace(token, str(split_number).zfill(5))
+        worker_split_batch.append(file_name)
+    
+    return worker_split_batch
+
+
+
+
+def download_data(split_range, data_dir, parallel_proc, cache_dir_name):
     """
     Download a subset of the C4 dataset based on the provided arguments.
 
@@ -72,13 +85,13 @@ def download_data(split_range, data_dir, parallel_proc):
         str: The name of the column containing the text data.
     """
     # Extract the split_range argument
-    list_of_splitfiles = (split_range).split(",")
+    #list_of_splitfiles = (split_range).split(",")
 
-    print(f"list of files being processed:{list_of_splitfiles}")
+    #print(f"list of files being processed:{list_of_splitfiles}")
 
     # Load the C4 dataset subset
     c4_subset = load_dataset(
-        "allenai/c4", data_files=list_of_splitfiles, num_proc=parallel_proc
+        "allenai/c4", data_files=split_range, num_proc=parallel_proc, cache_dir=cache_dir_name, trust_remote_code=True
     )
 
     print(f"dataset printing:{c4_subset}")
@@ -138,6 +151,7 @@ def preprocess_dataset(dataset, text_column_name, parallel_proc, model_id):
         datasets.Dataset: The preprocessed dataset.
     """
 
+    print(f"repo id: {model_id}")
     # Load Tokenizer
     tokenizer = AutoTokenizer.from_pretrained(model_id)
 
@@ -152,7 +166,7 @@ def preprocess_dataset(dataset, text_column_name, parallel_proc, model_id):
         batched=True,
         remove_columns=list(dataset["train"].column_names),
         desc="Running tokenizer on dataset",
-        num_proc=parallel_proc,
+        num_proc=parallel_proc
     ).map(partial(group_texts, block_size=2048), batched=True, num_proc=parallel_proc)
 
     return lm_dataset
@@ -162,9 +176,24 @@ def main():
     # Parse command-line arguments
     args, _ = parse_args()
 
+    os.environ['HF_HOME'] = f"{args.input_data_dir}/{args.job_name}/tmp"
+    os.environ['TRANSFORMERS_CACHE'] = f"{args.input_data_dir}/{args.job_name}/checkpoints"
+    os.environ['HF_DATASETS_CACHE'] = f"{args.input_data_dir}/{args.job_name}/cache"
+
+    token = "split_number"
+    split_name = f"en/c4-train.{token}-of-01024.json.gz"
+
+    start_of_split,end_of_split=(args.split_range).split(",")
+
+    worker_split_batch = create_batch(
+        start_of_split, end_of_split, token, split_name
+    )
+    
+    print(f"split batch:{worker_split_batch}")
+
     # Download and process the data
     c4_subset, text_column_name = download_data(
-        args.split_range, args.data_dir, args.num_proc
+        worker_split_batch, args.data_dir, args.num_proc, f"{args.input_data_dir}/{args.job_name}/data_cache"
     )
 
     print(f"text cloumn name identified: {text_column_name}")
@@ -176,6 +205,7 @@ def main():
         c4_subset, text_column_name, args.num_proc, args.model_id
     )
 
+    print("Saving data to FSx now .... ")
     # Use the preprocessed dataset for further processing or training
     lm_dataset.save_to_disk(f'{args.input_data_dir}/{args.job_name}/')
 
