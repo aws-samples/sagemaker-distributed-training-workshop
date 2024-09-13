@@ -1,0 +1,2 @@
+task: samsum
+class: !function task.Samsum
