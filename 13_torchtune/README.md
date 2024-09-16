@@ -1,13 +1,13 @@
 ## SageMaker training job with torchtune
 
-
 In this example, we use Meta’s torchtune library to fine-tune Llama-like architectures with any of the supported fine-tuning strategies on your choice of compute and libraries, all within a highly managed and cost-effective environment provided by Amazon SageMaker Training. Thsi example demonstrate this through a step-by-step implementation of fine-tuning, model inference, quantizing, and evaluating the Llama 3.1 8B model on 8 Nvidia A100 GPUs, utilizing 1 p4d.24xlarge worker node and LoRA fine-tuning strategy. 
 
 Follow the below steps to run this example:
+
 <u>**Step 1.**</u>: Run notebook "0_build_vpc_setup.ipynb"
 This executes a CFN template to launch the AWS infrastructure necessary. This notebook has the necessary cells to launch the CFN stack, create VPC, NAT, Security Group and EFS, that you can use to securily  runs the training job with access to EFS in the next steps. 
 
-<u>**Step 3.**</u>: Run notebook "1_build_container.ipynb"
+<u>**Step 2.**</u>: Run notebook "1_build_container.ipynb"
 As part of our example, we are using one of the key value propositions of SageMaker that allow you to bring in any of your custom libraries by creating your own containers. Here, for the purposes of this demo, we are extending from one of the SageMaker built-in images and adding in our own libraries like nightly torch, custom lm_eval task etc and creating the container image with the below Docker file.
 
 This notebook builds and pushes the custom Docker file to your ECR repository. We use sm-docker that is a CLI tool designed for building Docker images in Amazon SageMaker Studio using AWS CodeBuild. We will install the library as part of the notebook. 
