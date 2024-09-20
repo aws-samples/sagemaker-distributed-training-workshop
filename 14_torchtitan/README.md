@@ -19,17 +19,20 @@ To get started with torchtitan on SageMaker:
 
 1. First, build your custom container using the instructions in "Step 1 - Build Custom Container.ipynb".
 2. (Optional) If you need to prepare your dataset, follow the steps in "(Optional) Step 2 - Prepare Dataset.ipynb".
-3. Finally, train your model using torchTitan by following "Step 3 - Train with torchtitan.ipynb".
+3. Finally, train your model using torchtitan by following "Step 3 - Train with torchtitan.ipynb".
 
 ## Prerequisites
 
-- An AWS account with SageMaker access
+- [An AWS account.](https://aws.amazon.com/free/?gclid=CjwKCAjw_4S3BhAAEiwA_64YhprSXEAxE5JWxu8498Z9ayXAa08YwrqYvh7JyYinp095FXSxMRx06hoC4NsQAvD_BwE&trk=9ab5159b-247d-4917-a0ec-ec01d1af6bf9&sc_channel=ps&ef_id=CjwKCAjw_4S3BhAAEiwA_64YhprSXEAxE5JWxu8498Z9ayXAa08YwrqYvh7JyYinp095FXSxMRx06hoC4NsQAvD_BwE:G:s&s_kwcid=AL!4422!3!645133561110!e!!g!!aws%20account!19579657595!152087369744&all-free-tier.sort-by=item.additionalFields.SortRank&all-free-tier.sort-order=asc&awsf.Free%20Tier%20Types=*all&awsf.Free%20Tier%20Categories=*all)
+- A SageMaker domain and Amazon SageMaker Studio For instructions to create these, refer to [Quick setup to Amazon SageMaker](https://docs.aws.amazon.com/sagemaker/latest/dg/onboard-quick-start.html).
+- A [Hugging Face access token](https://huggingface.co/docs/hub/en/security-tokens) so you can download the Meta Llama 3 models and tokenizer to use later.
+- You need to request a [quota increase](https://docs.aws.amazon.com/servicequotas/latest/userguide/request-quota-increase.html) of at least 1 ml.p5.48xlarge instance for training job usage on SageMaker.
 - Familiarity with Python and PyTorch
 - Basic understanding of distributed training concepts
 
 ## Additional Resources
 
-For more information on SageMaker and TorchTitan, refer to the following resources:
+For more information on SageMaker and torchtitan, refer to the following resources:
 
 - [Amazon SageMaker Model Training Documentation](https://aws.amazon.com/sagemaker/train/)
-- [torchTitan GitHub Repository](https://github.com/pytorch/pytorch)
+- [torchtitan GitHub Repository](https://github.com/pytorch/pytorch)
