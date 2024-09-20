@@ -1,4 +1,4 @@
-# # Pre-train LLMs with torchtitan on Amazon SageMaker
+## Pre-train LLMs with torchtitan on Amazon SageMaker
 
 This directory contains notebooks and resources showcasing how to pre-train LLama 3 models with torchtitan on Amazon SageMaker.
 
