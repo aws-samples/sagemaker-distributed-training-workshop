@@ -1,5 +1,5 @@
 py7zr
-git+https://github.com/pytorch/torchtune.git@44d44c9421358ab0b571f138c592987b4fdd8c84
+torchtune==0.3.0
 torchao==0.3.1
 lm_eval==0.4.*
 transformers
