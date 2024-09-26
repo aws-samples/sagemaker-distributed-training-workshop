@@ -11,7 +11,8 @@ model:
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
   path: /opt/ml/input/data/model/hf-model/original/tokenizer.model
-  max_seq_len: 1280
+  prompt_template: torchtune.data.SummarizeTemplate
+  #max_seq_len: 1280
 
 checkpointer:
   _component_: torchtune.training.FullModelMetaCheckpointer
@@ -27,11 +28,17 @@ save_adapter_weights_only: False
 
 # Dataset and Sampler
 dataset:
-  _component_: torchtune.datasets.samsum_dataset
+  _component_: torchtune.datasets.instruct_dataset
+  source: json
+  data_files: /opt/ml/input/data/config/dataset/dataset.json
+  split: train
+  column_map: 
+      output: summary
+      input: dialogue
 seed: null
 shuffle: True
 trust_remote_code: True
-batch_size: 13
+batch_size: 8
 
 # Optimizer and Scheduler
 optimizer:
@@ -52,11 +59,6 @@ gradient_accumulation_steps: 1
 
 # Logging
 output_dir: /opt/ml/output
-# metric_logger:
-#   _component_: torchtune.utils.metric_logging.DiskLogger
-#   log_dir: ${output_dir}
-# log_every_n_steps: 1
-# log_peak_memory_stats: False
 
 metric_logger:
   _component_: torchtune.training.metric_logging.WandBLogger
@@ -70,28 +72,3 @@ allow_val_change: True
 device: cuda
 dtype: bf16
 enable_activation_checkpointing: True
-
-# Profiler (disabled)
-profiler:
-  _component_: torchtune.training.setup_torch_profiler
-  enabled: False
-
-  #Output directory of trace artifacts
-  output_dir: ${output_dir}/profiling_outputs
-
-  #`torch.profiler.ProfilerActivity` types to trace
-  cpu: True
-  cuda: True
-
-  #trace options passed to `torch.profiler.profile`
-  profile_memory: False
-  with_stack: False
-  record_shapes: True
-  with_flops: False
-
-  # `torch.profiler.schedule` options:
-  # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
-  wait_steps: 5
-  warmup_steps: 5
-  active_steps: 2
-  num_cycles: 1

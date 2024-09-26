@@ -8,7 +8,7 @@ model:
   _component_: torchtune.models.llama3_1.llama3_1_8b
 
 checkpointer:
-  _component_: torchtune.utils.FullModelMetaCheckpointer
+  _component_: torchtune.training.FullModelMetaCheckpointer
   checkpoint_dir: /opt/ml/input/data/model/
   checkpoint_files: [
     meta_model_0.pt
@@ -44,7 +44,7 @@ enable_kv_cache: False
 quantizer: null
 
 # quantizer:
-#   _component_: torchtune.utils.quantization.Int8DynActInt4WeightQuantizer
+#   _component_: torchtune.training.quantization.Int8DynActInt4WeightQuantizer
 #   groupsize: 256
   
   

@@ -8,7 +8,7 @@ model:
   _component_: torchtune.models.llama3_1.llama3_1_8b
   
 checkpointer:
-  _component_: torchtune.utils.FullModelMetaCheckpointer
+  _component_: torchtune.training.FullModelMetaCheckpointer
   checkpoint_dir: /opt/ml/input/data/model/
   checkpoint_files: [
     meta_model_0.pt
