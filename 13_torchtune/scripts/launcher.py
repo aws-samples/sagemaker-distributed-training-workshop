@@ -87,7 +87,8 @@ def finetune_model() -> None:
                                   #"NCCL_DEBUG": "INFO",
                                   "WANDB_API_KEY":args.wandb_token,
                                   "WANDB_DIR" : "/opt/ml/output",
-                                #  "HF_TOKEN": args.hf_token
+                                #  "HF_TOKEN": args.hf_token,
+                                  "TORCH_CUDA_ALLOC_CONF": "expandable_segments:True"
                                  }
     set_custom_env(custom_env)
     os.makedirs('/opt/ml/output', exist_ok=True)
@@ -101,6 +102,13 @@ def finetune_model() -> None:
     #run_command(del_model_dir_artifacts)
     print("***** PRINTING ls -ltr /opt/ml/code/ *****")
     run_command("ls -ltr /opt/ml/code/")
+    
+    full_command_single = (
+        f'PYTHONPATH=$PYTHONPATH:{args.templatedir} '
+        f'tune run '
+        f'{args.tune_recipe} '
+        f'--config {config_loc}'
+    )
     
     # Construct the fine-tuning command
     full_command = (
@@ -116,7 +124,10 @@ def finetune_model() -> None:
     )
     
     # Run the fine-tuning command
-    run_command(full_command)
+    if args.gpus == 1:
+        run_command(full_command_single)
+    elif args.gpus > 1:
+        run_command(full_command)
     
 def run_inference_original_model() -> None:
     """
