@@ -1,0 +1,192 @@
+Description: >-
+  Creates VPC and subnets for EFS to be used in SageMaker for large scale distributed training
+Parameters:
+  AZ:
+    Description: Availablity Zone
+    Type: String
+
+Resources:
+  Vpc:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: 10.52.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      InstanceTenancy: default
+      Tags:
+        - Key: Name
+          Value: !Ref 'AWS::StackName'
+  PublicSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      CidrBlock: 10.52.0.0/20
+      VpcId: !Ref Vpc
+      AvailabilityZone: !Ref AZ
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join: 
+            - ''
+            - 
+              - !Ref 'AWS::StackName'
+              - '/'
+              - 'PublicSubnet'
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Ref 'AWS::StackName'
+  PublicSubnetRouteAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet
+  PublicRoute:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+    DependsOn:
+      - GatewayToInternet
+  PublicNATGatewayEIP:
+    Type: 'AWS::EC2::EIP'
+    Properties:
+      Domain: vpc
+      Tags:
+        - Key: Name
+          Value: !Ref 'AWS::StackName'
+  PublicNATGateway:
+    Type: 'AWS::EC2::NatGateway'
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      AllocationId: !GetAtt 
+        - PublicNATGatewayEIP
+        - AllocationId
+      Tags:
+        - Key: Name
+          Value: !Ref 'AWS::StackName'
+  PrivateSubnet:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      CidrBlock: 10.52.16.0/20
+      VpcId: !Ref Vpc
+      AvailabilityZone: !Ref AZ
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value:
+            Fn::Join: 
+            - ''
+            - 
+              - !Ref 'AWS::StackName'
+              - '/'
+              - 'PrivateSubnet'
+  PrivateRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref Vpc
+      Tags:
+        - Key: Name
+          Value: !Ref 'AWS::StackName'
+  PrivateSubnetRouteAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnet
+  PrivateRoute:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref PublicNATGateway
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Ref 'AWS::StackName'
+  GatewayToInternet:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      VpcId: !Ref Vpc
+      InternetGatewayId: !Ref InternetGateway
+  SecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: SecurityGroup
+      GroupName: !Ref 'AWS::StackName'
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          Description: ssh from anywhere (to enable ec2 mount EFS - if required for debugging)
+          FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
+      VpcId: !Ref Vpc
+  SecurityGroupEgressAllTraffic:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      CidrIp: 0.0.0.0/0
+      IpProtocol: '-1'
+      Description: Allow all outbound traffic by default
+      GroupId: !GetAtt 
+        - SecurityGroup
+        - GroupId
+  SecurityGroupEgressAllTrafficFromSelf:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      IpProtocol: '-1'
+      Description: Allow all within sg
+      GroupId: !GetAtt 
+        - SecurityGroup
+        - GroupId
+      DestinationSecurityGroupId: !GetAtt 
+        - SecurityGroup
+        - GroupId     
+  SecurityGroupIngressTCP:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      IpProtocol: '-1'
+      Description: all traffic from self
+      GroupId: !GetAtt 
+        - SecurityGroup
+        - GroupId
+      SourceSecurityGroupId: !GetAtt 
+        - SecurityGroup
+        - GroupId
+  EFSFileSystem:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      PerformanceMode: generalPurpose
+      ThroughputMode: bursting
+      Encrypted: true
+      FileSystemTags: 
+        - Key: Name
+          Value: MyEFSFileSystem
+  MountTarget1:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SubnetId: !Ref PrivateSubnet  # Replace with your subnet ID
+      SecurityGroups: 
+        - !Ref SecurityGroup
+Outputs:
+  vpc:
+    Value: !Ref Vpc
+  sg:
+    Value: !GetAtt 
+      - SecurityGroup
+      - GroupId
+  publicsubnet:
+    Value: !Ref PublicSubnet
+  privatesubnet:
+    Value: !Ref PrivateSubnet
+  az:
+    Value: !GetAtt 
+      - PrivateSubnet
+      - AvailabilityZone
+  outputEFS:
+    Value: !Ref EFSFileSystem
