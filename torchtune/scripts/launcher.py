@@ -6,6 +6,7 @@ import subprocess as sb
 import sys
 from typing import Dict, Optional, Tuple
 import time
+import traceback
 
 def download_model(model_output_folder: str) -> None:
     """
