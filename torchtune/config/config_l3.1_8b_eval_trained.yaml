@@ -22,33 +22,20 @@ tokenizer:
   path: /opt/ml/input/data/model/hf-model/original/tokenizer.model
 
 # # Environment
-# device: cuda
-# dtype: bf16
-# seed: 1234 # It is not recommended to change this seed, b/c it matches EleutherAI's default seed
-
-# tasks: ["truthfulqa_mc2"]
-# limit: null
-# max_seq_length: 4096
-# batch_size: 8
-# enable_kv_cache: True
-
-# # Quantization specific args
-# quantizer: null
+device: cuda
+dtype: bf16
+seed: 1234 # It is not recommended to change this seed, b/c it matches EleutherAI's default seed
 
 
 # EleutherAI specific eval args
 #tasks: ["scrolls_qmsum"]
-#tasks: ["truthfulqa_mc2"]
+tasks: ["truthfulqa_mc2"]
 include_path: "/opt/ml/input/data/config/tasks"
-tasks: ["samsum"]
-#tasks: ["samsum_task_summary"]
+
 limit: null
 max_seq_length: 4096
 batch_size: 1
-
-#TRY THIS OUT 
 enable_kv_cache: True
-
 # Quantization specific args
 
 quantizer: null
