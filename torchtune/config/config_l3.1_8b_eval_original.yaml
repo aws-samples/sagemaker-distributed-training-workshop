@@ -9,7 +9,7 @@ model:
 
 checkpointer:
   _component_: torchtune.training.FullModelMetaCheckpointer
-  checkpoint_dir: /opt/ml/input/data/model/hf-model/original/
+  checkpoint_dir: /opt/ml/input/data/model/model_artifacts
   checkpoint_files: [
     consolidated.00.pth
   ]
@@ -19,7 +19,7 @@ checkpointer:
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /opt/ml/input/data/model/hf-model/original/tokenizer.model
+  path: /opt/ml/input/data/model/model_artifacts/tokenizer.model
 
 # Environment
 device: cuda

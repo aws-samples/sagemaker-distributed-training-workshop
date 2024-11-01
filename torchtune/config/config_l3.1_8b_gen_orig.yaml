@@ -9,7 +9,7 @@ model:
   
 checkpointer:
   _component_: torchtune.training.FullModelMetaCheckpointer
-  checkpoint_dir: /opt/ml/input/data/model/hf-model/original/
+  checkpoint_dir: /opt/ml/input/data/model/model_artifacts
   checkpoint_files: [
     consolidated.00.pth
   ]
@@ -24,7 +24,7 @@ seed: 1234
 # Tokenizer arguments
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /opt/ml/input/data/model/hf-model/original/tokenizer.model
+  path: /opt/ml/input/data/model/model_artifacts/tokenizer.model
 
 # Generation arguments; defaults taken from gpt-fast
 prompt: '{"dialogue":"Amanda: I baked  cookies. Do you want some?\nJerry: Sure \nAmanda: I will bring you tomorrow :-)"}'

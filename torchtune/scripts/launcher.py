@@ -7,36 +7,7 @@ import sys
 from typing import Dict, Optional, Tuple
 import time
 import traceback
-
-def download_model(model_output_folder: str) -> None:
-    """
-    Download a model if necessary.
-
-    Args:
-        model_output_folder (str): The folder to store the downloaded model.
-        args (argparse.Namespace): Command-line arguments.
-    """
-    download_folder = os.path.join(args.modeldir, model_output_folder)
-    full_command = f'tune download {args.model_id} --output-dir {download_folder} --hf-token {args.hf_token}'
-    
-    folder_exists = os.path.isdir(model_output_folder)
-
-    if not args.use_downloaded_model:
-        print("Downloading model...")
-        delete_command=f'rm -rf {download_folder}'
-        run_command(delete_command)
-        
-        delete_model_artifacts=f'rm -rf {args.modeldir}/*'
-        run_command(delete_model_artifacts)
-        
-        list_models=f'ls -ltr {args.modeldir}'
-        run_command(list_models)
-
-        run_command(full_command)
-    else:
-        print("Using existing downloaded model.")
-
-    
+ 
 def set_custom_env(env_vars: Dict[str, str]) -> None:
     """
     Set custom environment variables.
@@ -81,14 +52,16 @@ def finetune_model() -> None:
     """
     print("***** Starting model fine-tuning *****")
     
+    
+    if "SM_CHANNEL_MODEL_ARTIFACTS" in os.environ:
+        list_models=f'cp -r {args.modelartifacts}/ {args.modeldir}/'
+        run_command(list_models)
+    
     # Set custom environment variables
     custom_env: Dict[str, str] = {"HF_DATASETS_TRUST_REMOTE_CODE": "TRUE",
                                  }
     set_custom_env(custom_env)
     os.makedirs('/opt/ml/output', exist_ok=True)
-    
-    # Download the model
-    download_model(args.model_output_dir)
     
     # Construct the configuration file path
     config_loc = os.path.join(args.configdir, args.tune_config_name)
@@ -127,29 +100,9 @@ def run_inference_original_model() -> None:
         None
     """
     print("***** Running inference on original model *****")
-
-    # Download the model
-    download_model(args.model_output_dir)
     
     # Construct the configuration file path
     config_loc = os.path.join(args.configdir, args.tune_config_name)
-    
-    # try:
-    #     # Parse the prompt from JSON
-    #     prompt = json.loads(args.prompt)
-    # except json.JSONDecodeError:
-    #     print("Error: Invalid JSON in prompt. Using prompt as-is.")
-    #     prompt = args.prompt
-    #     raise
-
-    # Construct the inference command
-    # full_command = (
-    #     f'PYTHONPATH=$PYTHONPATH:{args.templatedir} '
-    #     f'tune run generate '
-    #     f'--config {config_loc} '
-    #     f'prompt="{args.prompt}"'
-    # )
-    
     
     try:
         # Parse the prompt from JSON
@@ -166,7 +119,6 @@ def run_inference_original_model() -> None:
         f'--config {config_loc} '
         f'prompt="{prompt}"'
     )
-    
     
     if is_primary_node():
         print("Running inference on primary node...")
@@ -189,37 +141,9 @@ def run_inference_trained_model() -> None:
         None
     """
     print("***** Running inference on trained model *****")
-
-    # Download the model
-    download_model(args.model_output_dir)
     
     # Construct the configuration file path
     config_loc = os.path.join(args.configdir, args.tune_config_name)
-    
-#     try:
-#         print(f"***args.prompt:{args.prompt}")
-#         print(f"***args.prompt1:{args.prompt1}")
-        
-    
-#         print("done")
-#         # Parse the prompt from JSON
-#         prompt = json.loads(args.prompt)
-#     except json.JSONDecodeError:
-#         print("Error: Invalid JSON in prompt. Using prompt as-is.")
-#         prompt = args.prompt
-#         raise
-
-#    # print(f"prompt**:{prompt}")
-    
-#    # print(f"prompt[prompt]]**:{prompt['prompt']}")
-
-#     # Construct the inference command with updated PYTHONPATH
-#     full_command = (
-#         f'PYTHONPATH=$PYTHONPATH:{args.templatedir} '
-#         f'tune run generate '
-#         f'--config {config_loc} '
-#         f'prompt="{str(prompt["prompt"])}"'
-#     )
     
     try:
         # Parse the prompt from JSON
@@ -268,9 +192,6 @@ def run_eval() -> None:
         "HF_TOKEN": args.hf_token
     }
     set_custom_env(custom_env)
-    
-    # Download the model
-    download_model(args.model_output_dir)
     
     # Construct the configuration file path
     config_loc = os.path.join(args.configdir, args.tune_config_name)
@@ -459,6 +380,23 @@ def parse_arge():
     parser.add_argument("--node_rank", type=int, default=0)
     parser.add_argument("--configdir", type=str, default=os.environ["SM_CHANNEL_CONFIG"])
     parser.add_argument("--modeldir", type=str, default=os.environ["SM_CHANNEL_MODEL"])
+
+    #parser.add_argument("--modelartifacts", type=str, default=os.environ["SM_CHANNEL_MODEL_ARTIFACTS"])
+    
+    # Check if SM_CHANNEL_MODEL_ARTIFACTS is available in the environment
+    if "SM_CHANNEL_MODEL_ARTIFACTS" in os.environ:
+        parser.add_argument("--modelartifacts", 
+                            type=str, 
+                            default=os.environ["SM_CHANNEL_MODEL_ARTIFACTS"],
+                            help="Path to model artifacts")
+    else:
+        # Optionally, you can add a different argument or handle the absence of SM_CHANNEL_MODEL_ARTIFACTS
+        parser.add_argument("--modelartifacts", 
+                            type=str, 
+                            help="Path to model artifacts (SM_CHANNEL_MODEL_ARTIFACTS not available)")
+    
+    
+
     parser.add_argument("--templatedir", type=str, default=os.environ["SM_CHANNEL_TEMPLATES"])
 
     parser.add_argument("--tune_config_name", type=str, default=os.environ["SM_HP_TUNE_CONFIG_NAME"])
@@ -501,6 +439,12 @@ def completion_status():
     list_quantized_model_dir = f'ls -ltr {args.modeldir}/quantized'
     run_command(list_quantized_model_dir)
     
+def hf_snapshot_savemodel():
+    from huggingface_hub import snapshot_download
+    
+    snapshot_download(repo_id=args.model_id, allow_patterns=["*.safetensors", "*.json","*.model","*.pth","*.00.pth"], local_dir="/opt/ml/model/llama3.1/basemodel_hf",local_dir_use_symlinks=False, token=args.hf_token)
+
+    
 def training_function():
     
     print_env_vars()
@@ -538,6 +482,8 @@ if __name__ == "__main__":
     try:
         print("Starting training...")
         training_function()
+        #hf_snapshot_savemodel()
+        
         
         if(report_error==1):
             sys.exit(1)
