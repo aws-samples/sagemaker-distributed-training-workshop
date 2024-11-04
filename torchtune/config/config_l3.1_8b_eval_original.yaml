@@ -19,7 +19,7 @@ checkpointer:
 # Tokenizer
 tokenizer:
   _component_: torchtune.models.llama3.llama3_tokenizer
-  path: /opt/ml/input/data/model/model_artifacts/tokenizer.model
+  path: /opt/ml/input/data/model/model_artifacts/original/tokenizer.model
 
 # Environment
 device: cuda
