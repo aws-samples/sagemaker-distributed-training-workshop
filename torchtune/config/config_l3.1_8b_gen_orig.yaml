@@ -8,10 +8,13 @@ model:
   _component_: torchtune.models.llama3_1.llama3_1_8b
   
 checkpointer:
-  _component_: torchtune.training.FullModelMetaCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /opt/ml/input/data/model/model_artifacts
   checkpoint_files: [
-    consolidated.00.pth
+    model-00001-of-00004.safetensors, 
+    model-00002-of-00004.safetensors, 
+    model-00003-of-00004.safetensors, 
+    model-00004-of-00004.safetensors,
   ]
   output_dir:  /opt/ml/model/hf-output
   model_type: LLAMA3
