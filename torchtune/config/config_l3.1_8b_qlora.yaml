@@ -16,10 +16,13 @@ tokenizer:
   max_seq_len: 256
 
 checkpointer:
-  _component_: torchtune.training.FullModelMetaCheckpointer
+  _component_: torchtune.training.FullModelHFCheckpointer
   checkpoint_dir: /opt/ml/input/data/model/model_artifacts
   checkpoint_files: [
-    consolidated.00.pth
+    model-00001-of-00004.safetensors, 
+    model-00002-of-00004.safetensors, 
+    model-00003-of-00004.safetensors, 
+    model-00004-of-00004.safetensors,
   ]
   recipe_checkpoint: null
   output_dir: /opt/ml/input/data/model/
