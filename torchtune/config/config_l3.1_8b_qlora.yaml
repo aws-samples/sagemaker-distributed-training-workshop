@@ -1,0 +1,109 @@
+# Model Arguments
+model:
+  _component_: torchtune.models.llama3_1.qlora_llama3_1_8b
+  lora_attn_modules: ['q_proj', 'v_proj', 'k_proj', 'output_proj']
+  apply_lora_to_mlp: True
+  apply_lora_to_output: False
+  lora_rank: 8
+  lora_alpha: 16
+  lora_dropout: 0.0
+
+# Tokenizer
+tokenizer:
+  _component_: torchtune.models.llama3.llama3_tokenizer
+  path: /opt/ml/input/data/model/model_artifacts/original/tokenizer.model
+  prompt_template: torchtune.data.SummarizeTemplate
+  max_seq_len: 256
+
+checkpointer:
+  _component_: torchtune.training.FullModelHFCheckpointer
+  checkpoint_dir: /opt/ml/input/data/model/model_artifacts
+  checkpoint_files: [
+    model-00001-of-00004.safetensors, 
+    model-00002-of-00004.safetensors, 
+    model-00003-of-00004.safetensors, 
+    model-00004-of-00004.safetensors,
+  ]
+  recipe_checkpoint: null
+  output_dir: /opt/ml/input/data/model/
+  model_type: LLAMA3
+resume_from_checkpoint: False
+save_adapter_weights_only: False
+
+# Dataset and Sampler
+dataset:
+  _component_: torchtune.datasets.instruct_dataset
+  source: json
+  data_files: /opt/ml/input/data/dataset/samsum_train.json
+  split: train
+  train_on_input: True
+  column_map: 
+      output: summary
+      input: dialogue
+seed: null
+shuffle: True
+trust_remote_code: True
+batch_size: 8
+
+# Optimizer and Scheduler
+optimizer:
+  _component_: torch.optim.AdamW
+  weight_decay: 0.01
+  lr: 3e-4
+lr_scheduler:
+  _component_: torchtune.modules.get_cosine_schedule_with_warmup
+  num_warmup_steps: 100
+
+loss:
+  _component_: torch.nn.CrossEntropyLoss
+
+# Training
+epochs: 1
+max_steps_per_epoch: null
+gradient_accumulation_steps: 1
+
+# Logging
+output_dir: /opt/ml/output
+# metric_logger:
+#   _component_: torchtune.utils.metric_logging.DiskLogger
+#   log_dir: ${output_dir}
+# log_every_n_steps: 1
+# log_peak_memory_stats: False
+
+metric_logger:
+  _component_: torchtune.training.metric_logging.DiskLogger
+  log_dir: ${output_dir}
+log_every_n_steps: 1
+log_peak_memory_stats: True
+allow_val_change: True
+
+
+# Environment
+device: cuda
+dtype: bf16
+enable_activation_checkpointing: True
+
+# Profiler (disabled)
+profiler:
+  _component_: torchtune.training.setup_torch_profiler
+  enabled: False
+
+  #Output directory of trace artifacts
+  output_dir: ${output_dir}/profiling_outputs
+
+  #`torch.profiler.ProfilerActivity` types to trace
+  cpu: True
+  cuda: True
+
+  #trace options passed to `torch.profiler.profile`
+  profile_memory: False
+  with_stack: False
+  record_shapes: True
+  with_flops: False
+
+  # `torch.profiler.schedule` options:
+  # wait_steps -> wait, warmup_steps -> warmup, active_steps -> active, num_cycles -> repeat
+  wait_steps: 5
+  warmup_steps: 5
+  active_steps: 2
+  num_cycles: 1
