@@ -1,0 +1,920 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  This CloudFormation stack creates and configures a virtual private cloud (VPC) environment tailored for Amazon SageMaker. 
+  It defines a VPC with public and private subnets, along with essential network components like an Internet Gateway, NAT Gateway, and route tables. 
+  Security groups are established to control traffic for SageMaker instances and VPC endpoints. The stack also provisions multiple VPC endpoints for services such as S3, SageMaker API, and CloudWatch, ensuring secure and private access. 
+  Finally, it sets up a SageMaker Studio Domain and User Profile, assigning necessary roles and permissions to facilitate SageMaker operations.
+
+Mappings:
+  VpcConfigurations:
+    cidr:
+      Vpc: 10.0.0.0/16
+      PublicSubnet1: 10.0.10.0/24
+      PrivateSubnet1: 10.0.20.0/24
+      PrivateSubnet2: 10.0.21.0/24
+      PrivateSubnet3: 10.0.22.0/24
+      PrivateSubnet4: 10.0.23.0/24
+      PrivateSubnet5: 10.0.24.0/24
+      PrivateSubnet6: 10.0.25.0/24
+
+Parameters:
+
+  SageMakerStudioDomainName:
+    Type: String
+    Description: Name of the Studio Domain to Create
+    Default: Generative-AI-Domain
+  
+  SageMakerStudioDefaultUserName:
+    Type: String
+    Description: Name of gen ai user to create in SageMaker Domain
+    Default: genai-user 
+  
+  MLFlowTrackingServerName:
+    Type: String
+    Description: Name of MLFlow Tracking Server
+    Default: genai-mlflow-tracker
+  
+  AssignedZoneIdAZ1:
+    Type: String
+    Default: use1-az1
+    AllowedValues:
+      - use1-az1
+    Description: AZ1
+  
+  AssignedZoneIdAZ2:
+    Type: String
+    Default: use1-az2
+    AllowedValues:
+      - use1-az2
+    Description: AZ2
+  
+  AssignedZoneIdAZ3:
+    Type: String
+    Default: use1-az3
+    AllowedValues:
+      - use1-az3
+    Description: AZ3
+  
+  AssignedZoneIdAZ4:
+    Type: String
+    Default: use1-az4
+    AllowedValues:
+      - use1-az4
+    Description: AZ4
+  
+  AssignedZoneIdAZ5:
+    Type: String
+    Default: use1-az5
+    AllowedValues:
+      - use1-az5
+    Description: AZ5
+  
+  AssignedZoneIdAZ6:
+    Type: String
+    Default: use1-az6
+    AllowedValues:
+      - use1-az6
+    Description: AZ6
+  
+  LlamaS3SourceURI:
+    Type: String
+    Description: Llama weights S3 URI
+
+Resources:
+
+  StudioBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "sagemaker-${AWS::Region}-${AWS::AccountId}-1"
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ["*"]
+            AllowedMethods: 
+              - POST
+              - PUT
+              - GET
+              - HEAD
+              - DELETE
+            AllowedOrigins: ["https://*.sagemaker.aws"]
+            ExposedHeaders: 
+              - ETag
+              - x-amz-delete-marker
+              - x-amz-id-2
+              - x-amz-request-id
+              - x-amz-server-side-encryption
+              - x-amz-version-id
+  
+  MLFlowBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub "mlflow-${AWS::Region}-${AWS::AccountId}"
+      CorsConfiguration:
+        CorsRules:
+          - AllowedHeaders: ["*"]
+            AllowedMethods: 
+              - POST
+              - PUT
+              - GET
+              - HEAD
+              - DELETE
+            AllowedOrigins: ["*"]
+            ExposedHeaders: 
+              - ETag
+              - x-amz-delete-marker
+              - x-amz-id-2
+              - x-amz-request-id
+              - x-amz-server-side-encryption
+              - x-amz-version-id
+
+  VPC:
+    Type: 'AWS::EC2::VPC'
+    Properties:
+      CidrBlock: !FindInMap 
+        - VpcConfigurations
+        - cidr
+        - Vpc
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: "for-use-with-amazon-emr-managed-policies"
+          Value: "true"
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-VPC'
+ 
+  InternetGateway:
+    Type: 'AWS::EC2::InternetGateway'
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-IGW'
+ 
+  InternetGatewayAttachment:
+    Type: 'AWS::EC2::VPCGatewayAttachment'
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+  
+  ###########################
+  # START OF SUBNET CONFIGS #
+  ###########################
+  # Public
+  PublicSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZoneId: !Ref AssignedZoneIdAZ1
+      CidrBlock: !FindInMap 
+        - VpcConfigurations
+        - cidr
+        - PublicSubnet1
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName} Public Subnet (AZ1)'
+ 
+  # Private
+  PrivateSubnet1:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZoneId: !Ref AssignedZoneIdAZ1
+      CidrBlock: !FindInMap 
+        - VpcConfigurations
+        - cidr
+        - PrivateSubnet1
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: "for-use-with-amazon-emr-managed-policies"
+          Value: "true"
+        - Key: Name
+          Value: !Sub '${AWS::StackName} Private Subnet (AZ1)'
+  
+  PrivateSubnet2:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZoneId: !Ref AssignedZoneIdAZ2
+      CidrBlock: !FindInMap 
+        - VpcConfigurations
+        - cidr
+        - PrivateSubnet2
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: "for-use-with-amazon-emr-managed-policies"
+          Value: "true"
+        - Key: Name
+          Value: !Sub '${AWS::StackName} Private Subnet (AZ2)'
+  
+  PrivateSubnet3:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZoneId: !Ref AssignedZoneIdAZ3
+      CidrBlock: !FindInMap 
+        - VpcConfigurations
+        - cidr
+        - PrivateSubnet3
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: "for-use-with-amazon-emr-managed-policies"
+          Value: "true"
+        - Key: Name
+          Value: !Sub '${AWS::StackName} Private Subnet (AZ3)'
+  
+  PrivateSubnet4:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZoneId: !Ref AssignedZoneIdAZ4
+      CidrBlock: !FindInMap 
+        - VpcConfigurations
+        - cidr
+        - PrivateSubnet4
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: "for-use-with-amazon-emr-managed-policies"
+          Value: "true"
+        - Key: Name
+          Value: !Sub '${AWS::StackName} Private Subnet (AZ4)'
+  
+  PrivateSubnet5:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZoneId: !Ref AssignedZoneIdAZ5
+      CidrBlock: !FindInMap 
+        - VpcConfigurations
+        - cidr
+        - PrivateSubnet5
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: "for-use-with-amazon-emr-managed-policies"
+          Value: "true"
+        - Key: Name
+          Value: !Sub '${AWS::StackName} Private Subnet (AZ5)'
+    
+  PrivateSubnet6:
+    Type: 'AWS::EC2::Subnet'
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZoneId: !Ref AssignedZoneIdAZ6
+      CidrBlock: !FindInMap 
+        - VpcConfigurations
+        - cidr
+        - PrivateSubnet6
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: "for-use-with-amazon-emr-managed-policies"
+          Value: "true"
+        - Key: Name
+          Value: !Sub '${AWS::StackName} Private Subnet (AZ6)'
+  
+  #########################
+  # END OF SUBNET CONFIGS #
+  #########################
+ 
+  NatGateway1EIP:
+    Type: 'AWS::EC2::EIP'
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+ 
+  NatGateway1:
+    Type: 'AWS::EC2::NatGateway'
+    Properties:
+      AllocationId: !GetAtt 
+        - NatGateway1EIP
+        - AllocationId
+      SubnetId: !Ref PublicSubnet1
+ 
+  PublicRouteTable:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName} Public Routes'
+ 
+  DefaultPublicRoute:
+    Type: 'AWS::EC2::Route'
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+ 
+  PublicSubnet1RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet1
+ 
+  PrivateRouteTable1:
+    Type: 'AWS::EC2::RouteTable'
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName} Private Routes (AZ1234)'
+  
+  PrivateSubnet1RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      SubnetId: !Ref PrivateSubnet1
+  
+  PrivateSubnet2RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      SubnetId: !Ref PrivateSubnet2
+  
+  PrivateSubnet3RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      SubnetId: !Ref PrivateSubnet3
+  
+  PrivateSubnet4RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      SubnetId: !Ref PrivateSubnet4
+
+  PrivateSubnet5RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      SubnetId: !Ref PrivateSubnet5
+  
+  PrivateSubnet6RouteTableAssociation:
+    Type: 'AWS::EC2::SubnetRouteTableAssociation'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      SubnetId: !Ref PrivateSubnet6
+ 
+  PrivateSubnet1InternetRoute:
+    Type: 'AWS::EC2::Route'
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable1
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway1
+  
+  S3Endpoint:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
+      VpcEndpointType: Gateway
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action:
+              - '*'
+            Resource:
+              - '*'
+      VpcId: !Ref VPC
+      RouteTableIds:
+        - !Ref PrivateRouteTable1
+ 
+  SageMakerInstanceSecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      Tags:
+        - Key: "for-use-with-amazon-emr-managed-policies"
+          Value: "true"
+      GroupName: SMSG
+      GroupDescription: Security group with no ingress rule
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+      VpcId: !Ref VPC
+
+  SageMakerInstanceSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: '-1'
+      GroupId: !Ref SageMakerInstanceSecurityGroup
+      SourceSecurityGroupId: !Ref SageMakerInstanceSecurityGroup
+
+  VPCEndpointSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow TLS for VPC Endpoint
+      SecurityGroupEgress:
+        - IpProtocol: -1
+          FromPort: -1
+          ToPort: -1
+          CidrIp: 0.0.0.0/0
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub ${AWS::StackName}-endpoint-security-group
+
+  EndpointSecurityGroupIngress:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: '-1'
+      GroupId: !Ref VPCEndpointSecurityGroup
+      SourceSecurityGroupId: !Ref SageMakerInstanceSecurityGroup
+
+  SageMakerExecutionRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      RoleName: !Sub "${AWS::StackName}-executionrole"
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - sagemaker.amazonaws.com
+                - lambda.amazonaws.com
+                - s3.amazonaws.com
+                - "opensearch.amazonaws.com"
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: !Sub '${AWS::StackName}-sageemr'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: ReadFromOpenSearch
+                Effect: Allow
+                Action:
+                  - "es:ESHttp*"
+                Resource:
+                  - !Sub arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/*
+              - Sid: ReadSecretFromSecretsManager
+                Effect: Allow
+                Action:
+                  - "secretsmanager:GetSecretValue"
+                Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:*"
+              - Effect: Allow
+                Action:
+                  - elasticmapreduce:ListInstances
+                  - elasticmapreduce:DescribeCluster
+                  - elasticmapreduce:DescribeSecurityConfiguration
+                  - elasticmapreduce:CreatePersistentAppUI
+                  - elasticmapreduce:DescribePersistentAppUI
+                  - elasticmapreduce:GetPersistentAppUIPresignedURL
+                  - elasticmapreduce:GetOnClusterAppUIPresignedURL
+                  - elasticmapreduce:ListClusters
+                  - iam:GetRole
+                Resource: '*'
+              - Effect: Allow
+                Action:
+                  - elasticmapreduce:DescribeCluster
+                  - elasticmapreduce:ListInstanceGroups
+                Resource: !Sub "arn:${AWS::Partition}:elasticmapreduce:*:*:cluster/*"
+              - Effect: Allow
+                Action:
+                  - elasticmapreduce:ListClusters
+                Resource: '*'
+        - PolicyName: !Sub '${AWS::StackName}-SMStar'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: "VisualEditor0"
+                Effect: "Allow"
+                Action: "sagemaker:*"
+                Resource: "*"
+        - PolicyName: !Sub '${AWS::StackName}-MLFlow'
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Sid: "VisualEditor0"
+                Effect: "Allow"
+                Action: "sagemaker-mlflow:*"
+                Resource: "*"
+      ManagedPolicyArns:
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonSageMakerFullAccess"
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonS3FullAccess"
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AWSLambda_FullAccess"
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/SecretsManagerReadWrite"
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonOpenSearchIngestionFullAccess"
+        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonOpenSearchServiceFullAccess"
+
+  VPCEndpointSagemakerAPI:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+        - !Ref PrivateSubnet3
+        - !Ref PrivateSubnet4
+        - !Ref PrivateSubnet5
+        - !Ref PrivateSubnet6
+        # - !Ref PrivateSubnet4
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sagemaker.api'
+      VpcId: !Ref VPC
+
+  VPCEndpointSageMakerRuntime:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+        - !Ref PrivateSubnet3
+        - !Ref PrivateSubnet4
+        - !Ref PrivateSubnet5
+        - !Ref PrivateSubnet6
+        # - !Ref PrivateSubnet4
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sagemaker.runtime'
+      VpcId: !Ref VPC
+
+  VPCEndpointSTS:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+        - !Ref PrivateSubnet3
+        - !Ref PrivateSubnet4
+        - !Ref PrivateSubnet5
+        - !Ref PrivateSubnet6
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.sts'
+      VpcId: !Ref VPC
+
+  VPCEndpointCW:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+        - !Ref PrivateSubnet3
+        - !Ref PrivateSubnet4
+        - !Ref PrivateSubnet5
+        - !Ref PrivateSubnet6
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.monitoring'
+      VpcId: !Ref VPC
+  
+  VPCEndpointCWL:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+        - !Ref PrivateSubnet3
+        - !Ref PrivateSubnet4
+        - !Ref PrivateSubnet5
+        - !Ref PrivateSubnet6
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.logs'
+      VpcId: !Ref VPC
+  
+  VPCEndpointECR:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+        - !Ref PrivateSubnet3
+        - !Ref PrivateSubnet4
+        - !Ref PrivateSubnet5
+        - !Ref PrivateSubnet6
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ecr.dkr'
+      VpcId: !Ref VPC
+  
+  VPCEndpointECRAPI:
+    Type: 'AWS::EC2::VPCEndpoint'
+    Properties:
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal: '*'
+            Action: '*'
+            Resource: '*'
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+        - !Ref PrivateSubnet3
+        - !Ref PrivateSubnet4
+        - !Ref PrivateSubnet5
+        - !Ref PrivateSubnet6
+      SecurityGroupIds:
+        - !Ref VPCEndpointSecurityGroup
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.ecr.api'
+      VpcId: !Ref VPC
+  
+  # SageMaker Studio Domain and User Profile Setup
+  ###################################################
+
+  StudioDomain:
+    Type: AWS::SageMaker::Domain
+    Properties:
+      DomainName: !Ref SageMakerStudioDomainName
+      AppNetworkAccessType: VpcOnly
+      AuthMode: IAM
+      VpcId: !Ref VPC
+      SubnetIds: 
+        - !Ref PrivateSubnet1
+        - !Ref PrivateSubnet2
+        - !Ref PrivateSubnet3
+        - !Ref PrivateSubnet4
+        - !Ref PrivateSubnet5
+        - !Ref PrivateSubnet6
+      DefaultUserSettings:
+        ExecutionRole: !GetAtt SageMakerExecutionRole.Arn
+        SecurityGroups:
+           - !Ref SageMakerInstanceSecurityGroup
+ 
+  StudioUserProfile:
+    Type: AWS::SageMaker::UserProfile
+    Properties:
+      DomainId: !Ref StudioDomain
+      UserProfileName: !Ref SageMakerStudioDefaultUserName
+      UserSettings: 
+        ExecutionRole: !GetAtt SageMakerExecutionRole.Arn
+  
+  MLFlowTrackingServer:
+    Type: AWS::SageMaker::MlflowTrackingServer
+    Properties:
+      ArtifactStoreUri: !Sub "s3://${MLFlowBucket}/${MLFlowTrackingServerName}" 
+      TrackingServerName: !Ref MLFlowTrackingServerName
+      TrackingServerSize: Small
+      RoleArn: !GetAtt SageMakerExecutionRole.Arn
+  
+  # SageMaker Studio Domain and User Profile Setup
+  ###################################################
+
+  CopyLlamaWeightsfromS3:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: !Sub "${AWS::StackName}-CopyLlamaWeights"
+      Handler: index.lambda_handler
+      Role: !GetAtt SageMakerExecutionRole.Arn
+      Runtime: python3.11
+      Timeout: 900
+      MemorySize: 2048
+      Code:
+        ZipFile: |
+          import os 
+          import boto3
+          import cfnresponse
+
+          def sendResponseCfn(event, context, responseStatus):
+              responseData = {}
+              responseData['Data'] = {}
+              print("\n\n==============> CFN Responding back with", event, context, responseStatus)
+              cfnresponse.send(event, context, responseStatus, responseData, "CustomResourcePhysicalID")
+                  
+          def lambda_handler(event, context):
+
+              print(f"Event ==============>", event)
+
+              source_s3_uri = event["ResourceProperties"]["SourceS3URI"]
+              target_s3_uri = event["ResourceProperties"]["DestinationS3URI"]
+
+              list_of_files = [
+                "config.json",
+                "model-00001-of-00004.safetensors",
+                "model-00002-of-00004.safetensors", 
+                "model-00003-of-00004.safetensors",
+                "model-00004-of-00004.safetensors", 
+                "original/tokenizer.model"
+              ] 
+
+              # Parse source S3 URI
+              if not source_s3_uri.startswith("s3://") or not target_s3_uri.startswith("s3://"):
+                  raise ValueError("Invalid S3 URI. Must start with 's3://'.")
+              
+              source_s3_uri_parts = source_s3_uri.replace("s3://", "").split('/', 1)
+              source_bucket = source_s3_uri_parts[0]
+              source_prefix = source_s3_uri_parts[1] if len(source_s3_uri_parts) > 1 else ""
+              
+              target_s3_uri_parts = target_s3_uri.replace("s3://", "").split('/', 1)
+              target_bucket = target_s3_uri_parts[0]
+              target_prefix = target_s3_uri_parts[1] if len(target_s3_uri_parts) > 1 else ""
+              
+              s3 = boto3.client('s3')
+              
+              for file in list_of_files:
+                  source_key = f"{source_prefix}/{file}" if source_prefix else file
+                  target_key = f"{target_prefix}/{file}" if target_prefix else file
+
+                  # Check if the file exists in the source bucket
+                  try:
+                      
+                      file_exist_resp = s3.head_object(Bucket=source_bucket, Key=source_key)
+                      print(f"======> Target: {target_bucket} || File Exists: source_key: {source_key}, target_key: {target_key}")
+
+                      if file_exist_resp['ResponseMetadata']['HTTPStatusCode'] == 200:
+                          copy_source = {'Bucket': source_bucket, 'Key': source_key}
+                          s3.copy(copy_source, target_bucket, target_key)
+                          print(f"Copied {source_key} to s3://{target_bucket}/{target_key}")
+                  
+                  except Exception as e:
+                      pass
+              
+              sendResponseCfn(event, context, cfnresponse.SUCCESS)
+
+  ActionCopyLlamaWeightsfromS3:
+    Type: Custom::ActionCopyLlamaWeightsfromS3
+    Properties:
+      ServiceToken: !GetAtt CopyLlamaWeightsfromS3.Arn
+      SourceS3URI: !Sub "${LlamaS3SourceURI}" 
+      DestinationS3URI: !Sub "s3://${StudioBucket}/sagemaker/models/base/llama3_1_8b_instruct"
+
+  # Create EFS volume
+  ###################################################
+  SecurityGroup:
+    Type: 'AWS::EC2::SecurityGroup'
+    Properties:
+      GroupDescription: SecurityGroup
+      GroupName: !Ref 'AWS::StackName'
+      SecurityGroupIngress:
+        - CidrIp: 0.0.0.0/0
+          Description: ssh from anywhere (to enable ec2 mount EFS - if required for debugging)
+          FromPort: 22
+          IpProtocol: tcp
+          ToPort: 22
+      VpcId: !Ref VPC
+  SecurityGroupEgressAllTraffic:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      CidrIp: 0.0.0.0/0
+      IpProtocol: '-1'
+      Description: Allow all outbound traffic by default
+      GroupId: !GetAtt 
+        - SecurityGroup
+        - GroupId
+  SecurityGroupEgressAllTrafficFromSelf:
+    Type: 'AWS::EC2::SecurityGroupEgress'
+    Properties:
+      IpProtocol: '-1'
+      Description: Allow all within sg
+      GroupId: !GetAtt 
+        - SecurityGroup
+        - GroupId
+      DestinationSecurityGroupId: !GetAtt 
+        - SecurityGroup
+        - GroupId     
+  SecurityGroupIngressTCP:
+    Type: 'AWS::EC2::SecurityGroupIngress'
+    Properties:
+      IpProtocol: '-1'
+      Description: all traffic from self
+      GroupId: !GetAtt 
+        - SecurityGroup
+        - GroupId
+      SourceSecurityGroupId: !GetAtt 
+        - SecurityGroup
+        - GroupId
+  EFSFileSystem:
+    Type: AWS::EFS::FileSystem
+    Properties:
+      PerformanceMode: generalPurpose
+      ThroughputMode: bursting
+      Encrypted: true
+      FileSystemTags: 
+        - Key: Name
+          Value: MyEFSFileSystem
+  MountTarget1:
+    Type: AWS::EFS::MountTarget
+    Properties:
+      FileSystemId: !Ref EFSFileSystem
+      SubnetId: !Ref PrivateSubnet1  # Replace with your subnet ID
+      SecurityGroups: 
+        - !Ref SecurityGroup
+
+
+# Stack Outputs
+###########################################################################
+Outputs:
+
+  SageMakerCloudformationVPCId:
+    Description: The ID of the Sagemaker Studio VPC
+    Value: !Ref VPC
+    Export:
+      Name: "SageMakerCloudformationVPCId"
+
+  SageMakerDomain:
+    Description: "SageMaker Domain Id"
+    Value: !Ref StudioDomain
+    Export:
+      Name: SageMakerDomainId
+
+  SageMakerDomainUrl:
+    Value: !Join
+      - ''
+      - - 'https://console.aws.amazon.com/sagemaker/home?region='
+        - !Ref 'AWS::Region'
+        - '#/studio/'
+        - !Ref StudioDomain
+    Description: URL to access the SageMaker Domain
+
+  EFSFileSystemId:
+    Description: ID of the created EFS File System
+    Value: !Ref EFSFileSystem
+
+  EFSMountTargetId:
+    Description: ID of the created EFS Mount Target
+    Value: !Ref MountTarget1
+  
+  SubnetID1:
+    Description: Subnet where EFS file system is created
+    Value: !Ref PrivateSubnet1
+  
+  SubnetID2:
+    Description: Subnet where EFS file system is created
+    Value: !Ref PrivateSubnet2
+  
+  SubnetID3:
+    Description: Subnet where EFS file system is created
+    Value: !Ref PrivateSubnet3
+  
+  SubnetID4:
+    Description: Subnet where EFS file system is created
+    Value: !Ref PrivateSubnet4
+  
+  SubnetID5:
+    Description: Subnet where EFS file system is created
+    Value: !Ref PrivateSubnet5
+  
+  SubnetID6:
+    Description: Subnet where EFS file system is created
+    Value: !Ref PrivateSubnet6
+  
+  SecurityGroup:
+    Description: Security Group
+    Value: !Ref SecurityGroup
+  
+  S3ModelUri:
+    Description: S3 path where we have model weights
+    Value: !Sub "s3://${StudioBucket}/sagemaker/models/base/llama3_1_8b_instruct"
+  
+
+  
