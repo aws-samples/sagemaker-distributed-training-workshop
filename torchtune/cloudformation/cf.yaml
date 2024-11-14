@@ -29,11 +29,6 @@ Parameters:
     Description: Name of gen ai user to create in SageMaker Domain
     Default: genai-user 
   
-  MLFlowTrackingServerName:
-    Type: String
-    Description: Name of MLFlow Tracking Server
-    Default: genai-mlflow-tracker
-  
   AssignedZoneIdAZ1:
     Type: String
     Default: use1-az1
@@ -104,28 +99,6 @@ Resources:
               - x-amz-server-side-encryption
               - x-amz-version-id
   
-  MLFlowBucket:
-    Type: AWS::S3::Bucket
-    Properties:
-      BucketName: !Sub "mlflow-${AWS::Region}-${AWS::AccountId}"
-      CorsConfiguration:
-        CorsRules:
-          - AllowedHeaders: ["*"]
-            AllowedMethods: 
-              - POST
-              - PUT
-              - GET
-              - HEAD
-              - DELETE
-            AllowedOrigins: ["*"]
-            ExposedHeaders: 
-              - ETag
-              - x-amz-delete-marker
-              - x-amz-id-2
-              - x-amz-request-id
-              - x-amz-server-side-encryption
-              - x-amz-version-id
-
   VPC:
     Type: 'AWS::EC2::VPC'
     Properties:
@@ -434,47 +407,10 @@ Resources:
                 - sagemaker.amazonaws.com
                 - lambda.amazonaws.com
                 - s3.amazonaws.com
-                - "opensearch.amazonaws.com"
             Action:
               - 'sts:AssumeRole'
       Path: /
       Policies:
-        - PolicyName: !Sub '${AWS::StackName}-sageemr'
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Sid: ReadFromOpenSearch
-                Effect: Allow
-                Action:
-                  - "es:ESHttp*"
-                Resource:
-                  - !Sub arn:aws:es:${AWS::Region}:${AWS::AccountId}:domain/*
-              - Sid: ReadSecretFromSecretsManager
-                Effect: Allow
-                Action:
-                  - "secretsmanager:GetSecretValue"
-                Resource: !Sub "arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:*"
-              - Effect: Allow
-                Action:
-                  - elasticmapreduce:ListInstances
-                  - elasticmapreduce:DescribeCluster
-                  - elasticmapreduce:DescribeSecurityConfiguration
-                  - elasticmapreduce:CreatePersistentAppUI
-                  - elasticmapreduce:DescribePersistentAppUI
-                  - elasticmapreduce:GetPersistentAppUIPresignedURL
-                  - elasticmapreduce:GetOnClusterAppUIPresignedURL
-                  - elasticmapreduce:ListClusters
-                  - iam:GetRole
-                Resource: '*'
-              - Effect: Allow
-                Action:
-                  - elasticmapreduce:DescribeCluster
-                  - elasticmapreduce:ListInstanceGroups
-                Resource: !Sub "arn:${AWS::Partition}:elasticmapreduce:*:*:cluster/*"
-              - Effect: Allow
-                Action:
-                  - elasticmapreduce:ListClusters
-                Resource: '*'
         - PolicyName: !Sub '${AWS::StackName}-SMStar'
           PolicyDocument:
             Version: 2012-10-17
@@ -483,21 +419,10 @@ Resources:
                 Effect: "Allow"
                 Action: "sagemaker:*"
                 Resource: "*"
-        - PolicyName: !Sub '${AWS::StackName}-MLFlow'
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Sid: "VisualEditor0"
-                Effect: "Allow"
-                Action: "sagemaker-mlflow:*"
-                Resource: "*"
       ManagedPolicyArns:
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonSageMakerFullAccess"
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonS3FullAccess"
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/AWSLambda_FullAccess"
-        - !Sub "arn:${AWS::Partition}:iam::aws:policy/SecretsManagerReadWrite"
-        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonOpenSearchIngestionFullAccess"
-        - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonOpenSearchServiceFullAccess"
 
   VPCEndpointSagemakerAPI:
     Type: AWS::EC2::VPCEndpoint
@@ -698,14 +623,6 @@ Resources:
       UserProfileName: !Ref SageMakerStudioDefaultUserName
       UserSettings: 
         ExecutionRole: !GetAtt SageMakerExecutionRole.Arn
-  
-  MLFlowTrackingServer:
-    Type: AWS::SageMaker::MlflowTrackingServer
-    Properties:
-      ArtifactStoreUri: !Sub "s3://${MLFlowBucket}/${MLFlowTrackingServerName}" 
-      TrackingServerName: !Ref MLFlowTrackingServerName
-      TrackingServerSize: Small
-      RoleArn: !GetAtt SageMakerExecutionRole.Arn
   
   # SageMaker Studio Domain and User Profile Setup
   ###################################################
