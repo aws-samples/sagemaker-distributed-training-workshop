@@ -361,8 +361,6 @@ Resources:
       GroupDescription: Security group with no ingress rule
       SecurityGroupEgress:
         - IpProtocol: -1
-          FromPort: -1
-          ToPort: -1
           CidrIp: 0.0.0.0/0
       VpcId: !Ref VPC
 
@@ -379,8 +377,6 @@ Resources:
       GroupDescription: Allow TLS for VPC Endpoint
       SecurityGroupEgress:
         - IpProtocol: -1
-          FromPort: -1
-          ToPort: -1
           CidrIp: 0.0.0.0/0
       VpcId: !Ref VPC
       Tags:
@@ -410,15 +406,6 @@ Resources:
             Action:
               - 'sts:AssumeRole'
       Path: /
-      Policies:
-        - PolicyName: !Sub '${AWS::StackName}-SMStar'
-          PolicyDocument:
-            Version: 2012-10-17
-            Statement:
-              - Sid: "VisualEditor0"
-                Effect: "Allow"
-                Action: "sagemaker:*"
-                Resource: "*"
       ManagedPolicyArns:
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonSageMakerFullAccess"
         - !Sub "arn:${AWS::Partition}:iam::aws:policy/AmazonS3FullAccess"
