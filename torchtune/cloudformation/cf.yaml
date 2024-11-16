@@ -664,25 +664,36 @@ Resources:
               target_prefix = target_s3_uri_parts[1] if len(target_s3_uri_parts) > 1 else ""
               
               s3 = boto3.client('s3')
-              
-              for file in list_of_files:
-                  source_key = f"{source_prefix}/{file}" if source_prefix else file
-                  target_key = f"{target_prefix}/{file}" if target_prefix else file
 
-                  # Check if the file exists in the source bucket
-                  try:
+              if event["RequestType"] in ["Create", "Update"]:
+
+                  for file in list_of_files:
+                      source_key = f"{source_prefix}/{file}" if source_prefix else file
+                      target_key = f"{target_prefix}/{file}" if target_prefix else file
+
+                      # Check if the file exists in the source bucket
+                      try:
+                          
+                          file_exist_resp = s3.head_object(Bucket=source_bucket, Key=source_key)
+                          print(f"======> Target: {target_bucket} || File Exists: source_key: {source_key}, target_key: {target_key}")
+
+                          if file_exist_resp['ResponseMetadata']['HTTPStatusCode'] == 200:
+                              copy_source = {'Bucket': source_bucket, 'Key': source_key}
+                              s3.copy(copy_source, target_bucket, target_key)
+                              print(f"Copied {source_key} to s3://{target_bucket}/{target_key}")
                       
-                      file_exist_resp = s3.head_object(Bucket=source_bucket, Key=source_key)
-                      print(f"======> Target: {target_bucket} || File Exists: source_key: {source_key}, target_key: {target_key}")
-
-                      if file_exist_resp['ResponseMetadata']['HTTPStatusCode'] == 200:
-                          copy_source = {'Bucket': source_bucket, 'Key': source_key}
-                          s3.copy(copy_source, target_bucket, target_key)
-                          print(f"Copied {source_key} to s3://{target_bucket}/{target_key}")
-                  
-                  except Exception as e:
-                      pass
+                      except Exception as e:
+                          print(e)
               
+              elif event["RequestType"] == "Delete":
+
+                  for file in list_of_files:
+                      target_key = f"{target_prefix}/{file}" if target_prefix else file
+                      try:
+                          s3.delete_object(Bucket=target_bucket, Key=target_key)
+                      except Exception as e:
+                          print(e)
+
               sendResponseCfn(event, context, cfnresponse.SUCCESS)
 
   ActionCopyLlamaWeightsfromS3:
@@ -699,12 +710,6 @@ Resources:
     Properties:
       GroupDescription: SecurityGroup
       GroupName: !Ref 'AWS::StackName'
-      SecurityGroupIngress:
-        - CidrIp: 0.0.0.0/0
-          Description: ssh from anywhere (to enable ec2 mount EFS - if required for debugging)
-          FromPort: 22
-          IpProtocol: tcp
-          ToPort: 22
       VpcId: !Ref VPC
   SecurityGroupEgressAllTraffic:
     Type: 'AWS::EC2::SecurityGroupEgress'
