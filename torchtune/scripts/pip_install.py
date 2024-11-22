@@ -11,4 +11,4 @@ def install_packages_silently(packages: list):
     """
     with open(os.devnull, 'w') as devnull:
         # Redirect stdout and stderr to devnull to suppress output
-        subprocess.run([sys.executable, "-m", "pip", "install"] + packages, stdout=devnull, stderr=devnull)
+        subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade"] + packages, stdout=devnull, stderr=devnull)
