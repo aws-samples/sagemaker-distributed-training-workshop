@@ -20,14 +20,23 @@ def parse_nccl_test_log(log_file: str) -> Optional[numpy.ndarray]:
     # Avg bus bandwidth    : 28.9057
     #
     """
+    # try:
+    #     with subprocess.Popen(
+    #         f"grep 'Avg bus bandwidth' {log_file}",
+    #         shell=True, stdout=subprocess.PIPE, encoding="UTF-8",
+    #     ) as pipe:
+    #         result, _ = pipe.communicate()
+    # except Exception as _:
+    #     return None
+
     try:
-        with subprocess.Popen(
-            f"grep 'Avg bus bandwidth' {log_file}",
-            shell=True, stdout=subprocess.PIPE, encoding="UTF-8",
-        ) as pipe:
-            result, _ = pipe.communicate()
+       result = subprocess.run(
+           ["grep", "Avg bus bandwidth", log_file],
+           capture_output=True,
+           text=True
+       ).stdout
     except Exception as _:
-        return None
+       return None
 
     bandwidth = []
     for line in str(result).split(os.linesep):
