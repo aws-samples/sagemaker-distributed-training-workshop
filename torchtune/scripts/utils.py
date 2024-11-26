@@ -30,6 +30,22 @@ def get_stack_outputs(stack_name: str, region: str = 'us-west-2') -> Dict[str, s
         print(f"Error retrieving stack outputs: {str(e)}")
         return {}
 
+def get_subnets() -> list:
+    """
+    Retrieves subnets from CloudFormation stack outputs.
+    
+    Returns:
+        list: A list of all subnet IDs.
+    """
+    outputs = get_stack_outputs(stack_name='cf', region=sagemaker.Session().boto_region_name)
+
+    subnets = [
+        outputs['SubnetID1'], outputs['SubnetID2'], outputs['SubnetID3'], 
+        outputs['SubnetID4'], outputs['SubnetID5'], outputs['SubnetID6']
+    ]
+
+    return subnets
+
 def get_azid_subnet_dict(outputs: Dict[str, str], desired_az_id: str = "use1-az5") -> list:
     """
     Retrieves subnets for a specified Availability Zone from CloudFormation stack outputs.
