@@ -1,0 +1,11 @@
+transformers==4.44.2
+datasets==2.18.0
+accelerate==0.33.0
+evaluate==0.4.1
+bitsandbytes==0.43.3
+huggingface_hub
+trl==0.9.6
+peft==0.12.0
+wandb
+py7zr
+rouge-score

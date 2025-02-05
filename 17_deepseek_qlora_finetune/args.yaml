@@ -1,0 +1,34 @@
+hf_token: "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" # Use HF token to login into Hugging Face to access the DeepSeek distilled models
+model_id: "deepseek-ai/DeepSeek-R1-Distill-Llama-8B"      # Hugging Face model id, replace it with 70b if needeed
+max_seq_length: 1024  #512 # 2048               # max sequence length for model and packing of the dataset
+# sagemaker specific parameters
+train_dataset_path: "/opt/ml/input/data/train/" # path to where SageMaker saves train dataset
+test_dataset_path: "/opt/ml/input/data/test/"   # path to where SageMaker saves test dataset
+
+output_dir: "/opt/ml/model/deepseek/output"              # path to where SageMaker will upload the model 
+# training parameters
+report_to: "tensorboard"              # report metrics to tensorboard
+learning_rate: 0.0003                  # learning rate 2e-4
+lr_scheduler_type: "constant"          # learning rate scheduler
+num_train_epochs: 1                  # number of training epochs
+per_device_train_batch_size: 10       # batch size per device during training
+per_device_eval_batch_size: 8         # batch size for evaluation
+gradient_accumulation_steps: 2        # number of steps before performing a backward/update pass
+optim: adamw_torch                     # use torch adamw optimizer
+logging_steps: 10                      # log every 10 steps
+save_strategy: epoch                   # save checkpoint every epoch
+evaluation_strategy: epoch             # evaluate every epoch
+max_grad_norm: 0.3                     # max gradient norm
+warmup_ratio: 0.03                     # warmup ratio
+bf16: true                             # use bfloat16 precision
+tf32: true                             # use tf32 precision
+gradient_checkpointing: true           # use gradient checkpointing to save memory
+
+weight_decay: 0.01
+warmup_steps: 100
+# offload FSDP parameters: https://huggingface.co/docs/transformers/main/en/fsdp
+fsdp: "full_shard auto_wrap" # remove offload if enough GPU memory
+fsdp_config:
+  backward_prefetch: "backward_pre"
+  forward_prefetch: "false"
+  use_orig_params: "false"
