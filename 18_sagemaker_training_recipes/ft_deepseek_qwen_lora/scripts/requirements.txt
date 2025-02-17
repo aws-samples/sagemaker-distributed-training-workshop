@@ -1,0 +1,8 @@
+datasets==3.2.0
+sagemaker==2.239.0
+sagemaker-training==4.8.4
+scikit-learn==1.6.1
+transformers==4.44.2
+evaluate==0.4.1
+rouge-score
+xtarfile
