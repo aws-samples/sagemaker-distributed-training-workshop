@@ -1,6 +1,6 @@
 datasets==3.2.0
-sagemaker==2.239.0
-sagemaker-training==4.8.4
+sagemaker==2.239.1
+sagemaker-training==4.9.0
 scikit-learn==1.6.1
 transformers==4.44.2
 evaluate==0.4.1
