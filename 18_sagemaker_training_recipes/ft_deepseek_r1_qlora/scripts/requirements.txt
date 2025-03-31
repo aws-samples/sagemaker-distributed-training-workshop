@@ -1,0 +1,11 @@
+datasets==3.2.0
+sagemaker==2.239.1
+sagemaker-training==4.9.0
+scikit-learn==1.6.1
+transformers==4.48.2
+evaluate==0.4.1
+rouge-score
+xtarfile
+huggingface_hub
+peft
+hydra-core
