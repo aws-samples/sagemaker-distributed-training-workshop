@@ -1,0 +1,10 @@
+huggingface_hub
+torch==2.6.0 
+torchvision==0.21.0
+torchaudio==2.6.0
+torchao==0.10.0
+torchtune==0.6.1
+accelerate==1.6.0
+datasets==3.5.0
+sagemaker==2.243.2
+transformers==4.51.3
