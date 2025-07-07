@@ -1,0 +1,11 @@
+accelerate==1.6.0
+datasets==3.5.0
+sagemaker==2.243.2
+transformers==4.51.3
+trl==0.16.1
+wandb==0.19.9
+setuptools<71.0.0
+hf-transfer
+deepspeed
+peft
+bitsandbytes==0.45.2
