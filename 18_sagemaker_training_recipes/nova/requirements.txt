@@ -1,0 +1,5 @@
+boto3
+botocore
+datasets==3.5.1
+sagemaker
+scikit-learn==1.6.1
