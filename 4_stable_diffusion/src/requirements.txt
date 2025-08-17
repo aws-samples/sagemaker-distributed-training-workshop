@@ -4,7 +4,7 @@ spacy
 #-f https://download.pytorch.org/whl/cu113/torch_stable.html
 #torch==1.12.1+cu113 
 
-transformers==4.21.0 
+transformers==4.36.0 
 accelerate 
 diffusers==0.4.1
 datasets
