@@ -3,7 +3,7 @@ torchvision==0.21.0
 torchaudio==2.6.0
 accelerate==1.6.0
 peft==0.15.2
-transformers==4.54.1
+transformers==4.51.1
 triton==3.2.0
 trl==0.18.0
 bitsandbytes==0.45.5
