@@ -69,6 +69,35 @@ Open `smddp_fsdp_example.ipynb` and run all cells. The notebook will:
 - **FSx Lustre** — provides high-throughput data access vs. S3 direct download
 - **NAT Gateway** — allows the training container to install pip packages from PyPI
 
+## Environment
+
+This notebook was developed and tested with the following local environment:
+
+| Component | Version |
+|-----------|---------|
+| Python | 3.11.13 |
+| OS | macOS (arm64 / Apple Silicon) |
+| sagemaker | 3.13.1 |
+| boto3 | 1.43.29 |
+| transformers | 5.12.1 |
+| datasets | 5.0.0 |
+| torch | 2.12.0 |
+| accelerate | 1.14.0 |
+
+**Training container image:**
+
+```
+763104351884.dkr.ecr.us-west-2.amazonaws.com/pytorch-training:2.0.1-gpu-py310-cu118-ubuntu20.04-sagemaker
+```
+
+- Python 3.10, PyTorch 2.0.1, CUDA 11.8, Ubuntu 20.04
+
+To reproduce, create a virtual environment with Python 3.11+ and install:
+
+```bash
+pip install sagemaker boto3 transformers datasets torch accelerate
+```
+
 ## Cleanup
 
 Delete the CloudFormation stack to avoid ongoing charges (NAT Gateway ~$0.045/hr, FSx Lustre storage):
