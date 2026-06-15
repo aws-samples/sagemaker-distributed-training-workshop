@@ -1,0 +1,188 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: >
+  VPC with FSx for Lustre filesystem linked to an S3 bucket.
+  Use this stack to provision networking and high-performance storage
+  for SageMaker training jobs with FSx Lustre data channels.
+
+Parameters:
+  S3BucketName:
+    Type: String
+    Description: Name of the S3 bucket to link with FSx Lustre (must already exist)
+    AllowedPattern: '[a-z0-9][a-z0-9.-]*[a-z0-9]'
+    ConstraintDescription: Must be a valid S3 bucket name
+
+  S3ImportPrefix:
+    Type: String
+    Default: ''
+    Description: S3 key prefix to import into FSx (leave empty to import entire bucket)
+
+  StorageCapacityGiB:
+    Type: Number
+    Default: 1200
+    AllowedValues: [1200, 2400, 3600, 7200, 10800]
+    Description: FSx Lustre storage capacity in GiB (minimum 1200)
+
+  LustreDeploymentType:
+    Type: String
+    Default: SCRATCH_2
+    AllowedValues: [SCRATCH_1, SCRATCH_2, PERSISTENT_1, PERSISTENT_2]
+    Description: FSx Lustre deployment type
+
+  VpcCidr:
+    Type: String
+    Default: 10.0.0.0/16
+    Description: CIDR block for the VPC
+
+  SubnetCidr:
+    Type: String
+    Default: 10.0.1.0/24
+    Description: CIDR block for the private subnet
+
+Resources:
+  # --- VPC ---
+  VPC:
+    Type: AWS::EC2::VPC
+    Properties:
+      CidrBlock: !Ref VpcCidr
+      EnableDnsSupport: true
+      EnableDnsHostnames: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-vpc'
+
+  # --- Private Subnet (FSx Lustre + SageMaker training) ---
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: !Ref SubnetCidr
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-private-subnet'
+
+  # --- Route Table ---
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-private-rt'
+
+  PrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PrivateSubnet
+      RouteTableId: !Ref PrivateRouteTable
+
+  # --- S3 VPC Endpoint (Gateway) for FSx-S3 sync ---
+  S3VpcEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Properties:
+      VpcId: !Ref VPC
+      ServiceName: !Sub 'com.amazonaws.${AWS::Region}.s3'
+      VpcEndpointType: Gateway
+      RouteTableIds:
+        - !Ref PrivateRouteTable
+
+  # --- Security Group for FSx Lustre and SageMaker ---
+  FSxSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Security group for FSx Lustre and SageMaker training instances
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-fsx-sg'
+
+  # Lustre uses TCP ports 988 and 1018-1023
+  FSxIngressLustre988:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref FSxSecurityGroup
+      IpProtocol: tcp
+      FromPort: 988
+      ToPort: 988
+      SourceSecurityGroupId: !Ref FSxSecurityGroup
+
+  FSxIngressLustre1018:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      GroupId: !Ref FSxSecurityGroup
+      IpProtocol: tcp
+      FromPort: 1018
+      ToPort: 1023
+      SourceSecurityGroupId: !Ref FSxSecurityGroup
+
+  # Allow all outbound traffic
+  FSxEgressAll:
+    Type: AWS::EC2::SecurityGroupEgress
+    Properties:
+      GroupId: !Ref FSxSecurityGroup
+      IpProtocol: '-1'
+      CidrIp: 0.0.0.0/0
+
+  # --- FSx for Lustre Filesystem ---
+  FSxLustreFileSystem:
+    Type: AWS::FSx::FileSystem
+    Properties:
+      FileSystemType: LUSTRE
+      StorageCapacity: !Ref StorageCapacityGiB
+      SubnetIds:
+        - !Ref PrivateSubnet
+      SecurityGroupIds:
+        - !Ref FSxSecurityGroup
+      LustreConfiguration:
+        DeploymentType: !Ref LustreDeploymentType
+        ImportPath: !If
+          - HasS3Prefix
+          - !Sub 's3://${S3BucketName}/${S3ImportPrefix}'
+          - !Sub 's3://${S3BucketName}'
+        ExportPath: !If
+          - HasS3Prefix
+          - !Sub 's3://${S3BucketName}/${S3ImportPrefix}'
+          - !Sub 's3://${S3BucketName}'
+        AutoImportPolicy: NEW_CHANGED_DELETED
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-fsx-lustre'
+
+Conditions:
+  HasS3Prefix: !Not [!Equals [!Ref S3ImportPrefix, '']]
+
+Outputs:
+  VpcId:
+    Description: VPC ID
+    Value: !Ref VPC
+    Export:
+      Name: !Sub '${AWS::StackName}-VpcId'
+
+  SubnetId:
+    Description: Private Subnet ID (use in SageMaker networking config)
+    Value: !Ref PrivateSubnet
+    Export:
+      Name: !Sub '${AWS::StackName}-SubnetId'
+
+  SecurityGroupId:
+    Description: Security Group ID (use in SageMaker networking config)
+    Value: !Ref FSxSecurityGroup
+    Export:
+      Name: !Sub '${AWS::StackName}-SecurityGroupId'
+
+  FileSystemId:
+    Description: FSx Lustre File System ID (use in SageMaker FileSystemDataSource)
+    Value: !Ref FSxLustreFileSystem
+    Export:
+      Name: !Sub '${AWS::StackName}-FileSystemId'
+
+  MountName:
+    Description: FSx Lustre mount name (use as directory_path prefix)
+    Value: !GetAtt FSxLustreFileSystem.LustreMountName
+    Export:
+      Name: !Sub '${AWS::StackName}-MountName'
+
+  S3BucketLinked:
+    Description: S3 bucket linked to FSx Lustre
+    Value: !Ref S3BucketName
