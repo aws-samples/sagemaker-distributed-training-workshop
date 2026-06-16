@@ -27,7 +27,7 @@ This example demonstrates how to fine-tune [Falcon-7B](https://huggingface.co/ti
 ## Prerequisites
 
 1. An AWS account with SageMaker, FSx, and CloudFormation permissions
-2. An AWS CLI profile configured (e.g., `claude`) with valid credentials
+2. An AWS CLI profile configured with valid credentials
 3. An S3 bucket for training data
 
 ## Quick Start
@@ -57,7 +57,7 @@ Open `smddp_fsdp_example.ipynb` and run all cells. The notebook will:
 | File | Description |
 |------|-------------|
 | `smddp_fsdp_example.ipynb` | End-to-end notebook (data prep, upload, training) |
-| `cfn-vpc-fsx-lustre.yaml` | CloudFormation template (VPC, FSx, NAT Gateway, networking) |
+| `cfn-vpc-fsx-lustre.yaml` | CloudFormation template (VPC, FSx PERSISTENT_2, DRA, NAT Gateway, networking) |
 | `scripts/train.py` | FSDP training entry point |
 | `scripts/utils.py` | DataLoader and model save helpers |
 | `scripts/requirements.txt` | Runtime dependencies for training container |
@@ -65,9 +65,15 @@ Open `smddp_fsdp_example.ipynb` and run all cells. The notebook will:
 ## Key Features
 
 - **No hardcoded infrastructure IDs** — all config is read dynamically from CloudFormation stack outputs
+- **PERSISTENT_2 FSx with Data Repository Association (DRA)** — full S3 sync with auto-import/export, supports lazy loading and on-demand data hydration
+- **FSDP across 4 GPUs** — Falcon-7B sharded across 4x A10G GPUs (ml.g5.12xlarge) with bf16 mixed precision
 - **Warm Pools** — 15-minute keep-alive reduces startup time for iterative training
-- **FSx Lustre** — provides high-throughput data access vs. S3 direct download
 - **NAT Gateway** — allows the training container to install pip packages from PyPI
+
+## Important Notes
+
+- **S3 encryption**: FSx Lustre lazy loading works with SSE-S3 (AES256) encrypted objects. If your S3 bucket uses SSE-KMS, convert objects to SSE-S3 or configure the FSx service-linked role with KMS decrypt permissions.
+- **Data sync**: The DRA auto-imports new/changed S3 objects. If data is uploaded after the DRA is created, allow ~30 seconds for auto-import before launching a training job.
 
 ## Environment
 
