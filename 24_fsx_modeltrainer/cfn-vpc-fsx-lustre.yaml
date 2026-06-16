@@ -24,7 +24,7 @@ Parameters:
 
   LustreDeploymentType:
     Type: String
-    Default: SCRATCH_2
+    Default: PERSISTENT_2
     AllowedValues: [SCRATCH_1, SCRATCH_2, PERSISTENT_1, PERSISTENT_2]
     Description: FSx Lustre deployment type
 
@@ -50,6 +50,71 @@ Resources:
         - Key: Name
           Value: !Sub '${AWS::StackName}-vpc'
 
+  # --- Public Subnet (for NAT Gateway) ---
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      CidrBlock: 10.0.0.0/24
+      AvailabilityZone: !Select [0, !GetAZs '']
+      MapPublicIpOnLaunch: true
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-public-subnet'
+
+  # --- Internet Gateway ---
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-igw'
+
+  VPCGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      VpcId: !Ref VPC
+      InternetGatewayId: !Ref InternetGateway
+
+  # --- Public Route Table ---
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-public-rt'
+
+  PublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      SubnetId: !Ref PublicSubnet
+      RouteTableId: !Ref PublicRouteTable
+
+  # --- NAT Gateway (gives private subnet outbound internet) ---
+  NatEIP:
+    Type: AWS::EC2::EIP
+    DependsOn: VPCGatewayAttachment
+    Properties:
+      Domain: vpc
+
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatEIP.AllocationId
+      SubnetId: !Ref PublicSubnet
+      Tags:
+        - Key: Name
+          Value: !Sub '${AWS::StackName}-nat'
+
   # --- Private Subnet (FSx Lustre + SageMaker training) ---
   PrivateSubnet:
     Type: AWS::EC2::Subnet
@@ -62,7 +127,7 @@ Resources:
         - Key: Name
           Value: !Sub '${AWS::StackName}-private-subnet'
 
-  # --- Route Table ---
+  # --- Private Route Table ---
   PrivateRouteTable:
     Type: AWS::EC2::RouteTable
     Properties:
@@ -70,6 +135,13 @@ Resources:
       Tags:
         - Key: Name
           Value: !Sub '${AWS::StackName}-private-rt'
+
+  PrivateRouteNat:
+    Type: AWS::EC2::Route
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      NatGatewayId: !Ref NatGateway
 
   PrivateSubnetRouteTableAssociation:
     Type: AWS::EC2::SubnetRouteTableAssociation
@@ -127,6 +199,8 @@ Resources:
   # --- FSx for Lustre Filesystem ---
   FSxLustreFileSystem:
     Type: AWS::FSx::FileSystem
+    DeletionPolicy: Delete
+    UpdateReplacePolicy: Delete
     Properties:
       FileSystemType: LUSTRE
       StorageCapacity: !Ref StorageCapacityGiB
@@ -136,18 +210,33 @@ Resources:
         - !Ref FSxSecurityGroup
       LustreConfiguration:
         DeploymentType: !Ref LustreDeploymentType
-        ImportPath: !If
-          - HasS3Prefix
-          - !Sub 's3://${S3BucketName}/${S3ImportPrefix}'
-          - !Sub 's3://${S3BucketName}'
-        ExportPath: !If
-          - HasS3Prefix
-          - !Sub 's3://${S3BucketName}/${S3ImportPrefix}'
-          - !Sub 's3://${S3BucketName}'
-        AutoImportPolicy: NEW_CHANGED_DELETED
+        PerUnitStorageThroughput: 125
       Tags:
         - Key: Name
           Value: !Sub '${AWS::StackName}-fsx-lustre'
+
+  # --- Data Repository Association (PERSISTENT_2 requires DRA instead of ImportPath) ---
+  FSxDataRepositoryAssociation:
+    Type: AWS::FSx::DataRepositoryAssociation
+    Properties:
+      FileSystemId: !Ref FSxLustreFileSystem
+      FileSystemPath: /data
+      DataRepositoryPath: !If
+        - HasS3Prefix
+        - !Sub 's3://${S3BucketName}/${S3ImportPrefix}'
+        - !Sub 's3://${S3BucketName}'
+      BatchImportMetaDataOnCreate: true
+      S3:
+        AutoImportPolicy:
+          Events:
+            - NEW
+            - CHANGED
+            - DELETED
+        AutoExportPolicy:
+          Events:
+            - NEW
+            - CHANGED
+            - DELETED
 
 Conditions:
   HasS3Prefix: !Not [!Equals [!Ref S3ImportPrefix, '']]

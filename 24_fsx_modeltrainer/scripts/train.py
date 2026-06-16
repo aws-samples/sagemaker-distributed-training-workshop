@@ -103,7 +103,7 @@ def training_function(args):
         bias=False,
     )
 
-    model = AutoModelForCausalLM.from_config(config)
+    model = AutoModelForCausalLM.from_config(config, torch_dtype=torch.bfloat16)
     tokenizer = AutoTokenizer.from_pretrained(args.model_id)
 
     train_dataset = dataset["train"]
