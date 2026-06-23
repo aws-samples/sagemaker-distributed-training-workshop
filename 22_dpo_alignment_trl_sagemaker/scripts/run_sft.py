@@ -15,7 +15,7 @@ from transformers import (
     BitsAndBytesConfig,
 )
 from transformers.trainer_utils import get_last_checkpoint
-from transformers.utils import is_liger_kernel_available
+#from transformers.utils import is_liger_kernel_available
 from trl import SFTTrainer, TrlParser, ModelConfig, SFTConfig, get_peft_config
 from trl import setup_chat_format
 from datasets import load_dataset
@@ -118,34 +118,6 @@ def train_function(
             script_args.dataset_id_or_path, split=script_args.dataset_splits
         )
 
-    # train_dataset = train_dataset.select(range(10000))
-
-    # def create_convo(sample):
-    #     return {
-    #         'messages': [
-    #             {'content': sample['instruction'], 'role': 'system'},
-    #             {'content': sample['input'], 'role': 'user'},
-    #             {'content': sample['output'], 'role': 'assistant'},
-    #         ]
-    #     }
-
-    # def create_prompt(sample):
-    #     return {
-    #         'prompt': f"### Instruction:\n\n{sample['instruction']}\n#### Context:\n\n{sample['input']}",
-    #         'completion': f"\n\n### Response:\n\n{sample['output']}\n",
-    #     }
-
-    # train_dataset = train_dataset.map(
-    #     create_prompt,
-    #     remove_columns=train_dataset.column_names,
-    #     desc='Creating conversation dataset',
-    # )
-
-    # train_split = train_dataset.train_test_split(
-    #     test_size=0.2, seed=42, shuffle=True
-    # )
-    # train_dataset = train_split['train']
-    # test_dataset = train_split['test']
 
     logger.info(
         f'Loaded dataset with {len(train_dataset)} samples and the following features: {train_dataset.features}'
@@ -165,7 +137,40 @@ def train_function(
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+    tokenizer.pad_token = tokenizer.eos_token
     # if we use peft we need to make sure we use a chat template that is not using special tokens as by default embedding layers will not be trainable
+
+
+    # train_dataset = train_dataset.select(range(10000))
+
+   #####################
+    # Prepare and format dataset
+    #####################
+    # def format_data(sample):
+    #     prompt = tokenizer.apply_chat_template(
+    #         [
+    #             sample["messages"][0],
+    #             sample["messages"][1],
+    #             sample["messages"][2]
+    #         ],
+    #         tokenize=False, 
+    #         enable_thinking=False,
+    #     )
+        
+    #     return {"messages": prompt}
+
+    # # For DPO/ORPO, the inputs are triples of (prompt, chosen, rejected), where `chosen` and `rejected` are the final turn of a dialogue
+    # train_dataset = train_dataset.map(
+    #     format_data, remove_columns=train_dataset.column_names
+    # )
+    logger.info(
+        f'Loaded dataset with {len(train_dataset)} samples and the following features: {train_dataset.features}'
+    )
+    # train_split = train_dataset.train_test_split(
+    #     test_size=0.2, seed=42, shuffle=True
+    # )
+    # train_dataset = train_split['train']
+    # test_dataset = train_split['test']
 
     #######################
     # Load pretrained model
@@ -209,13 +214,13 @@ def train_function(
         peft_config = None
 
     # load the model with our kwargs
-    if training_args.use_liger:
-        model = AutoLigerKernelForCausalLM.from_pretrained(
-            model_args.model_name_or_path, **model_kwargs
-        )
+    # if training_args.use_liger:
+    #     model = AutoLigerKernelForCausalLM.from_pretrained(
+    #         model_args.model_name_or_path, **model_kwargs
+    #     )
 
-    else:
-        model = AutoModelForCausalLM.from_pretrained(
+    # else:
+    model = AutoModelForCausalLM.from_pretrained(
             model_args.model_name_or_path, **model_kwargs
         )
     if hasattr(tokenizer, "chat_template") and tokenizer.chat_template is not None:
@@ -237,7 +242,7 @@ def train_function(
         model=model,
         args=training_args,
         train_dataset=train_dataset,
-        tokenizer=tokenizer,
+        processing_class=tokenizer,
         peft_config=peft_config,
     #     max_seq_length=training_args.max_seq_length,
     #     packing=training_args.packing,
@@ -293,7 +298,7 @@ def train_function(
 
     # Save everything else on main process
     if trainer.accelerator.is_main_process:
-        trainer.create_model_card({'tags': ['sft', 'tutorial', 'philschmid']})
+        trainer.create_model_card({'tags': ['sft', 'reinvent', 'amindashti']})
     # push to hub if needed
     if training_args.push_to_hub is True:
         logger.info('Pushing to hub...')

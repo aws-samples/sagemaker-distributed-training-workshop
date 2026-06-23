@@ -1,24 +1,24 @@
 # Model arguments
-model_name_or_path: Qwen/Qwen3-4B
-tokenizer_name_or_path: Qwen/Qwen3-4B
+model_name_or_path: Qwen/Qwen3-0.6B
+tokenizer_name_or_path: Qwen/Qwen3-0.6B
 model_revision: main
 torch_dtype: bfloat16
 attn_implementation: flash_attention_2
-use_liger: false
+#use_liger: false
 bf16: true
 tf32: true
-output_dir: runs/spectrum-Qwen-3-4B
+output_dir: /opt/ml/model/Qwen3-0.6B-function-calling
 
 # Dataset arguments
-dataset_id_or_path: ../DPO/data/nvidia_When2Call_train_sft.json
+dataset_id_or_path: /opt/ml/input/data/dataset/dataset.json
 max_seq_length: 2048
 packing: true
 
 # Spectrum arguments
-spectrum_config_path: /home/sagemaker-user/DPO/spectrum-layer/snr_results_Qwen-Qwen3-4B_unfrozenparameters_50percent.yaml
+spectrum_config_path: /opt/ml/input/data/code/spectrum-layer/snr_results_Qwen-Qwen3-0.6B_unfrozenparameters_50percent.yaml
 
 # Training arguments
-num_train_epochs: 50
+num_train_epochs: 5
 per_device_train_batch_size: 4
 gradient_accumulation_steps: 2
 gradient_checkpointing: true

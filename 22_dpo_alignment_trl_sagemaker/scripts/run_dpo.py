@@ -108,6 +108,9 @@ def dpo_function(
     )
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+    # tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+
+
 
     #####################
     # Prepare and format dataset
@@ -116,15 +119,21 @@ def dpo_function(
         prompt = tokenizer.apply_chat_template(
             [
                 {"role": "system", "content": sample["system_prompt"]},
-                {"role": "user", "content": sample["messages"]},
+                sample["messages"][0],
             ],
-            tokenize=False,
+            tokenize=False, 
+            enable_thinking=False,
         )
+        
         chosen = tokenizer.apply_chat_template(
-            [{"role": "user", "content": sample["chosen"]}], tokenize=False
+            [sample["chosen"]], 
+            tokenize=False,
+            enable_thinking=False,
         )
         rejected = tokenizer.apply_chat_template(
-            [{"role": "user", "content": sample["rejected"]}], tokenize=False
+            [sample["rejected"]], 
+            tokenize=False,
+            enable_thinking=False,
         )
         return {"prompt": prompt, "chosen": chosen, "rejected": rejected}
 
@@ -135,7 +144,8 @@ def dpo_function(
 
     # remove all columns except chosen, rejected
     print(f"Columns: {train_dataset.features.keys()}")
-    train_dataset = train_dataset.select_columns(["prompt", "chosen", "rejected"])
+    #train_dataset = train_dataset.select_columns(["prompt", "chosen", "rejected"])
+    train_dataset = train_dataset.select_columns([ "chosen", "rejected"])
 
     #######################################
     # Load the model and/or reference model
@@ -176,6 +186,9 @@ def dpo_function(
     model = AutoModelForCausalLM.from_pretrained(
         model_args.model_name_or_path, **model_kwargs
     )
+
+    
+    model.resize_token_embeddings(len(tokenizer))
     # Checks wether we use adapters for reference model or not
     if peft_config is None:
         model_ref = AutoModelForCausalLM.from_pretrained(
